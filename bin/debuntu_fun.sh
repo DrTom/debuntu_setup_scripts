@@ -240,7 +240,13 @@ chmod a+x ~/bin/lein
 }
 
 function debuntu_jvm_open_jdk_install {
-apt-get install --assume-yes openjdk-7-jre-headless openjdk-7-jdk visualvm
+apt-get install --assume-yes openjdk-7-jre-headless openjdk-7-jdk
+
+# Ugly hack: visualvm is packaged for Debian testing (jessie), not for wheezy, so
+# let's not attempt to install there.
+if debuntu_system_is_ubuntu; then
+        apt-get install --assume-yes visualvm
+fi
 }
 
 function debuntu_meta_echo_test {
@@ -445,7 +451,20 @@ fi
 }
 
 function debuntu_system_install_basics {
-apt-get install --assume-yes curl git openssh-server unzip zip
+apt-get install --assume-yes curl git openssh-server unzip zip lsb-release
+}
+
+function debuntu_system_is_ubuntu {
+# Detect if it's Ubuntu so we know if we have to do any Ubuntu-specific extrawursts
+function debuntu_system_is_ubuntu {
+        if [ "$(lsb_release -is)" = "Ubuntu" ]; then
+                echo "this shit is ubuntu"
+                return 0
+        else
+                echo "this shit ain't ubuntu"
+                return 1
+        fi
+}
 }
 
 function debuntu_system_set_us-utf8_locale {
@@ -478,19 +497,23 @@ TB_LINK="/opt/torquebox"
 
 
 ### stopping torquebox
-stop torquebox
-MATCHER='java.*jar.*torquebox'
-pgrep -f "$MATCHER"
-if [ $? -ne 0 ]; then
-  sleep 10
-  pkill -SIGTERM -f "$MATCHER"
+if debuntu_system_is_ubuntu; then
+        stop torquebox
+        MATCHER='java.*jar.*torquebox'
+        pgrep -f "$MATCHER"
+        if [ $? -ne 0 ]; then
+          sleep 10
+          pkill -SIGTERM -f "$MATCHER"
+        fi
+        pgrep -f "$MATCHER"
+        if [ $? -ne 0 ]; then
+          sleep 10
+          pkill -SIGKILL -f "$MATCHER"
+        fi
+        stop torquebox
+else
+        service torquebox stop
 fi
-pgrep -f "$MATCHER"
-if [ $? -ne 0 ]; then
-  sleep 10
-  pkill -SIGKILL -f "$MATCHER"
-fi
-stop torquebox
 
 
 ### installing prerequisites
@@ -513,7 +536,12 @@ debuntu_torquebox_setup_env_loader
 debuntu_torquebox_setup_logrotate
 debuntu_torquebox_setup_upstart
 
-start torquebox
+
+if debuntu_system_is_ubuntu; then
+        start torquebox
+else
+        service torquebox start
+fi
 }
 
 function debuntu_torquebox_setup_env_loader {

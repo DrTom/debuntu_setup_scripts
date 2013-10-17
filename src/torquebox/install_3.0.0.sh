@@ -7,19 +7,23 @@ TB_LINK="/opt/torquebox"
 
 
 ### stopping torquebox
-stop torquebox
-MATCHER='java.*jar.*torquebox'
-pgrep -f "$MATCHER"
-if [ $? -ne 0 ]; then
-  sleep 10
-  pkill -SIGTERM -f "$MATCHER"
+if debuntu_system_is_ubuntu; then
+        stop torquebox
+        MATCHER='java.*jar.*torquebox'
+        pgrep -f "$MATCHER"
+        if [ $? -ne 0 ]; then
+          sleep 10
+          pkill -SIGTERM -f "$MATCHER"
+        fi
+        pgrep -f "$MATCHER"
+        if [ $? -ne 0 ]; then
+          sleep 10
+          pkill -SIGKILL -f "$MATCHER"
+        fi
+        stop torquebox
+else
+        service torquebox stop
 fi
-pgrep -f "$MATCHER"
-if [ $? -ne 0 ]; then
-  sleep 10
-  pkill -SIGKILL -f "$MATCHER"
-fi
-stop torquebox
 
 
 ### installing prerequisites
@@ -42,4 +46,9 @@ debuntu_torquebox_setup_env_loader
 debuntu_torquebox_setup_logrotate
 debuntu_torquebox_setup_upstart
 
-start torquebox
+
+if debuntu_system_is_ubuntu; then
+        start torquebox
+else
+        service torquebox start
+fi

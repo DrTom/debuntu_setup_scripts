@@ -1,1 +1,1 @@
-apt-get install --assume-yes curl git openssh-server unzip zip
+apt-get install --assume-yes curl git openssh-server unzip zip lsb-release
