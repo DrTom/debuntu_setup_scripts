@@ -267,6 +267,18 @@ FUNCTIONS=`declare -f $FUNLIST`
 echo "$FUNCTIONS" > "$1"
 }
 
+function debuntu_rails-server_setup-as-torquebox {
+debuntu_ruby_rbenv_install
+debuntu_ruby_rbenv_install_ruby_2.0.0
+}
+
+function debuntu_rails-server_setup {
+debuntu_torquebox_install_3.0.0
+debuntu_database_postgresql_install_9.2
+debuntu_database_postgresql_add_superuser torquebox
+debuntu_invoke_as_user torquebox debuntu_rails-server_setup-as-torquebox
+}
+
 function debuntu_ruby_rbenv_install {
 curl https://raw.github.com/fesplugas/rbenv-installer/master/bin/rbenv-installer | bash
 }
@@ -436,12 +448,20 @@ apg-get update
 apt-get dist-upgrade --assume-yes
 }
 
-function debuntu_system_enable_backports {
+function debuntu_system_install_basics {
+apt-get install --assume-yes curl git openssh-server unzip zip lsb-release
+}
+
+function debuntu_system_meta_os-name {
+echo -ne "$(lsb_release -is)/$(lsb_release -cs)"
+}
+
+function debuntu_system_misc_enable_backports {
 vim -c "%s/\v^(#+\s+)(deb.*-backports)/\2/g" -c "wq" "/etc/apt/sources.list"
 apt-get update
 }
 
-function debuntu_system_etckeeper_setup {
+function debuntu_system_misc_etckeeper_setup {
 apt-get install etckeeper
 cat <<'EOF' > "/etc/etckeeper/etckeeper.conf"
 VCS="git"
@@ -456,28 +476,7 @@ if [ ! -d "/etc/.git" ]; then
 fi 
 }
 
-function debuntu_system_install_basics {
-apt-get install --assume-yes curl git openssh-server unzip zip lsb-release
-}
-
-function debuntu_system_is_ubuntu {
-# Detect if it's Ubuntu so we know if we have to do any Ubuntu-specific extrawursts
-function debuntu_system_is_ubuntu {
-        if [ "$(lsb_release -is)" = "Ubuntu" ]; then
-                echo "this shit is ubuntu"
-                return 0
-        else
-                echo "this shit ain't ubuntu"
-                return 1
-        fi
-}
-}
-
-function debuntu_system_meta_os-name {
-echo -ne "$(lsb_release -is)/$(lsb_release -cs)"
-}
-
-function debuntu_system_set_us-utf8_locale {
+function debuntu_system_misc_set_us-utf8_locale {
 export LANGUAGE=en_US.UTF-8
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
@@ -492,9 +491,17 @@ export LC_ALL=en_US.UTF-8
 HEREDOC0
 }
 
-function debuntu_system_setup_vim {
+function debuntu_system_misc_vim_setup {
 apt-get install --assume-yes vim-nox
 update-alternatives --set editor /usr/bin/vim.nox
+}
+
+function debuntu_system_setup {
+debuntu_system_apt_upgrade
+debuntu_system_misc_set_us-utf8_locale
+debuntu_system_install_basics
+debuntu_system_misc_vim_setup
+debuntu_system_misc_etckeeper_setup
 }
 
 function debuntu_torquebox_install_3.0.0 {
