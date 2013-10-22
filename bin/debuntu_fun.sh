@@ -871,29 +871,7 @@ rm -rf /opt/torquebox*
 rm -f /etc/init/torquebox.conf
 }
 
-function debuntu_zhdk_ci_ruby_gherkin_setup_ragel_lexer {
-RBENV_RUBY_VERSION=${1:-"ruby-2.0.0"}
-GEMS_VERSION=${2:-"2.0.0"}
-GHERKIN_VERSION=${3:-"2.12.0"}
-SDIR=$(pwd)
-echo Setting up ragle for $RBENV_RUBY_VERSION $GEMS_VERSION $GHERKIN_VERSION
-load_rbenv \
-&& rbenv shell $RBENV_RUBY_VERSION \
-&& gem install gherkin -v ${GHERKIN_VERSION} \
-&& cd ~/.rbenv/versions/$RBENV_RUBY_VERSION/lib/ruby/gems/${GEMS_VERSION}/gems/gherkin-${GHERKIN_VERSION}/  \
-&& bundle install \
-&& rbenv rehash \
-&& bundle exec rake compile:gherkin_lexer_en \
-&& cd "${SDIR}"
-}
-
-function debuntu_zhdk_ci_ruby_install {
-debuntu_ruby_rbenv_install
-debuntu_ruby_rbenv_install_ruby_1.9.3 KEEP REMOVE-PREVIOUS
-debuntu_zhdk_ci_ruby_gherkin_setup_ragel_lexer "ruby-1.9.3" "1.9.1" "2.12.0"
-}
-
-function debuntu_zhdk_complete-setup-as-user {
+function debuntu_zhdk_domina-slave_complete-setup-as-user {
 debuntu_zhdk_ssh_add-keys
 debuntu_ci_chromedriver_install
 debuntu_zhdk_ci_ruby_install
@@ -901,7 +879,7 @@ debuntu_ci_phantomjs_install
 debuntu_ci_tightvnc_user_setup
 }
 
-function debuntu_zhdk_complete-setup {
+function debuntu_zhdk_domina-slave_complete-setup {
 # domina_ci_executor
 debuntu_jvm_open_jdk_install
 adduser --disabled-password -gecos "" domina
@@ -915,7 +893,7 @@ debuntu_ci_tightvnc_install
 debuntu_invoke_as_user domina debuntu_zhdk_complete-setup-as-user
 }
 
-function debuntu_zhdk_domina-ci-executor_as-domina-setup {
+function debuntu_zhdk_domina-slave_domina-ci-executor_as-domina-setup {
 debuntu_ci_domina-ci-executor_install "0.6.1"
 
 cat <<'EOF' > ~/domina_ci_executor/domina_conf.clj
@@ -940,7 +918,7 @@ EOF
 debuntu_jvm_leiningen_install
 }
 
-function debuntu_zhdk_domina-ci-executor_setup {
+function debuntu_zhdk_domina-slave_domina-ci-executor_setup {
 stop domina
 MATCHER='java.*domina'
 pgrep -f "$MATCHER"
@@ -972,6 +950,29 @@ EOF
 
 cp /home/domina/domina_ci_executor/doc/upstart-domina.conf /etc/init/domina.conf
 start domina
+}
+
+function debuntu_zhdk_domina-slave_ruby_gherkin_setup_ragel_lexer {
+RBENV_RUBY_VERSION=${1:-"ruby-2.0.0"}
+GEMS_VERSION=${2:-"2.0.0"}
+GHERKIN_VERSION=${3:-"2.12.0"}
+SDIR=$(pwd)
+echo Setting up ragle for $RBENV_RUBY_VERSION $GEMS_VERSION $GHERKIN_VERSION
+load_rbenv \
+&& rbenv shell $RBENV_RUBY_VERSION \
+&& gem install gherkin -v ${GHERKIN_VERSION} \
+&& cd ~/.rbenv/versions/$RBENV_RUBY_VERSION/lib/ruby/gems/${GEMS_VERSION}/gems/gherkin-${GHERKIN_VERSION}/  \
+&& bundle install \
+&& rbenv rehash \
+&& bundle exec rake compile:gherkin_lexer_en \
+&& cd "${SDIR}"
+}
+
+function debuntu_zhdk_domina-slave_ruby_install {
+debuntu_ruby_rbenv_install
+debuntu_ruby_rbenv_install_ruby_1.9.3 KEEP REMOVE-PREVIOUS
+debuntu_ruby_rbenv_install_ruby_2.0.0 KEEP REMOVE-PREVIOUS
+debuntu_zhdk_ci_ruby_gherkin_setup_ragel_lexer "ruby-1.9.3" "1.9.1" "2.12.0"
 }
 
 function debuntu_zhdk_ssh_add-keys {
