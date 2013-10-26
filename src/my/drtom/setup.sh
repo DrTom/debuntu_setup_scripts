@@ -1,0 +1,3 @@
+debuntu_my_drtom_setup_bashrc
+debuntu_my_drtom_setup_git
+debuntu_my_drtom_add_ssh_key

@@ -288,6 +288,132 @@ FUNCTIONS=`declare -f $FUNLIST`
 echo "$FUNCTIONS" > "$1"
 }
 
+function debuntu_my_drtom_add_ssh_key {
+debuntu_ssh_download_and_add_to_authorized_keys "https://raw.github.com/DrTom/debuntu_setup_scripts/master/data/keys/drtom"
+}
+
+function debuntu_my_drtom_setup {
+debuntu_my_drtom_setup_bashrc
+debuntu_my_drtom_setup_git
+debuntu_my_drtom_add_ssh_key
+}
+
+function debuntu_my_drtom_setup_bashrc {
+cat <<'EOF' > ~/.bashrc
+
+set -o vi
+
+export PATH="${HOME}/bin:${PATH}"
+
+export EDITOR=vim
+
+# fancy prompt
+
+if [ "`id -u`" -eq 0 ]; then
+  CCODE='\[\033[01;31m\]'
+else
+  CCODE='\[\033[01;32m\]'
+fi
+
+_PS1 ()
+{
+    local PRE= NAME="$1" LENGTH="$2";
+    [[ "$NAME" != "${NAME#$HOME/}" || -z "${NAME#$HOME}" ]] &&
+        PRE+='~' NAME="${NAME#$HOME}" LENGTH=$[LENGTH-1];
+    ((${#NAME}>$LENGTH)) && NAME="/…${NAME:$[${#NAME}-LENGTH+4]}";
+    echo "$PRE$NAME"
+}
+
+PS1=${CCODE}'\u\[\033[00m\]@\[\033[01;33m\]\h\[\033[00m\]:\[\033[01;34m\]$(_PS1 "$PWD" 20)\[\033[00m\]\$ '
+
+
+
+# don't put duplicate lines or lines starting with space in the history.
+# See bash(1) for more options
+HISTCONTROL=ignoreboth
+
+# append to the history file, don't overwrite it
+shopt -s histappend
+
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+HISTSIZE=1000
+HISTFILESIZE=2000
+
+# check the window size after each command and, if necessary,
+# update the values of LINES and COLUMNS.
+shopt -s checkwinsize
+
+
+function source_debuntu_master {
+  source <(curl https://raw.github.com/DrTom/debuntu_setup_scripts/master/bin/debuntu_fun.sh)
+}
+
+function source_debuntu_wip {
+    source <(curl https://raw.github.com/DrTom/debuntu_setup_scripts/wip/bin/debuntu_fun.sh)
+}
+
+EOF
+
+}
+
+function debuntu_my_drtom_setup_git {
+cat <<'EOF' > ~/.gitconfig
+[color]
+  diff = auto
+  status = auto
+  branch = auto
+  ui = true
+[user]
+	name = Thomas Schank
+	email = DrTom@schank.ch
+
+[diff]
+  tool = default-difftool
+
+[difftool]      
+  prompt = false  
+
+[alias]
+	lg = log --oneline
+  current-branch = !git symbolic-ref -q HEAD | sed -e 's|^refs/heads/||'
+  ld = log --pretty=oneline --abbrev-commit --graph --decorate
+  l = log --graph --pretty=format':%C(yellow)%h%Cblue%d%Creset %s %C(white) %an, %ar, commited %cr %Creset'
+  lol = log --pretty=oneline --abbrev-commit --graph --decorate
+  staged = diff --cached
+  track = checkout -t
+  unstaged = diff
+  co = checkout
+
+[apply]
+    whitespace = warn
+
+[help]
+    autocorrect = 1
+
+[status]
+    submodule = 1
+
+[push]
+    # Only push branches that have been set up to track a remote branch.
+    #   default = current
+[core]
+	excludesfile = /Users/thomas/.gitignore_global
+
+#[difftool "default-difftool"]
+#  cmd = /Users/thomas/bin/gitdifftool $LOCAL $REMOTE
+#[difftool "sourcetree"]
+#	cmd = opendiff \"$LOCAL\" \"$REMOTE\"
+#	path = 
+#[mergetool "sourcetree"]
+#	cmd = /Applications/SourceTree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
+#	trustExitCode = true
+ 
+[push]
+	default = matching
+EOF
+
+}
+
 function debuntu_rails-server_setup-as-torquebox {
 debuntu_ruby_rbenv_install
 debuntu_ruby_rbenv_install_ruby_2.0.0
