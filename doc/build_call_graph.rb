@@ -5,7 +5,7 @@ require 'ruby-graphviz'
 cmd ="bash -c 'source bin/debuntu_fun.sh; declare -F | grep debuntu_ | cut -d \" \" -f 3'"
 functions= `#{cmd}`.split("\n")
 
-@script_name_regex = /debuntu_[\w\.\d-]+/
+@script_name_regex = /[\s+]debuntu_[\w\.\d-]+/
 
 def break_lines s
   ilb=0
