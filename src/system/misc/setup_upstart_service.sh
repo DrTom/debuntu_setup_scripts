@@ -22,7 +22,7 @@ pre-start script
 bash << "EOF"
   sleep 1
   mkdir -p /var/log/$NAME
-  chown -R $NAME /var/log/$NAME
+  chown -R $USER /var/log/$NAME
 EOF
 end script
 
@@ -40,7 +40,7 @@ EOF
 end script
 INIT_SCRIPT_END
 
-echo "The service $NAME has been set up. See $UPSTART_SCRIPT for tweaking."
+echo "The service $NAME has been set up. See $UPSTART_SCRIPT_PATH for tweaking."
 
 
 fi  
