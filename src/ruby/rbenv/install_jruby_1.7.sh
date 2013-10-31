@@ -1,8 +1,8 @@
 if [[ -n $HELP ]]; then
 cat <<EOF 
 
-  Install latest ruby 2.0.0 and remove all other patcheѕ.
-  This version is then kown to rbenv by ruby-2.0.0.
+  Install latest jruby 1.7 and remove all older 1.7 versions
+  This version is then kown to rbenv by jruby-1.7
  
   optional vars:
 
@@ -11,10 +11,8 @@ EOF
 return
 fi
 
-CURRENT='2.0.0-p247'
-LINK='ruby-2.0.0'
-declare -a OLD_VERSIONS=("2.0.0-p0" "2.0.0-p195")
+CURRENT='jruby-1.7.5'
+LINK='jruby-1.7'
+declare -a OLD_VERSIONS=("jruby-1.7.4")
 
 OLD_VERSIONS=$OLD_VERSIONS CURRENT=$CURRENT LINK=$LINK KEEP=$KEEP debuntu_ruby_rbenv_install_latest
-
-

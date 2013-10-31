@@ -423,6 +423,7 @@ function debuntu_rails-server_setup {
 debuntu_torquebox_install_3.0.0
 debuntu_database_postgresql_install_9.2
 debuntu_database_postgresql_add_superuser torquebox
+debuntu_ruby_rbenv_prepare_system
 debuntu_invoke_as_user torquebox debuntu_rails-server_setup-as-torquebox
 }
 
@@ -430,30 +431,106 @@ function debuntu_ruby_rbenv_install {
 curl https://raw.github.com/fesplugas/rbenv-installer/master/bin/rbenv-installer | bash
 }
 
-function debuntu_ruby_rbenv_install_jruby_1.7.4 {
-RUBY='jruby-1.7.4'
-debuntu_ruby_rbenv_install_ruby "$RUBY" "$LINK"
+function debuntu_ruby_rbenv_install_jruby_1.7 {
+if [[ -n $HELP ]]; then
+cat <<EOF 
+
+  Install latest jruby 1.7 and remove all older 1.7 versions
+  This version is then kown to rbenv by jruby-1.7
+ 
+  optional vars:
+
+  KEEP (non empty string) will preserve the currently existing if it is up to the lates patchlevel.
+EOF
+return
+fi
+
+CURRENT='jruby-1.7.5'
+LINK='jruby-1.7'
+declare -a OLD_VERSIONS=("jruby-1.7.4")
+
+OLD_VERSIONS=$OLD_VERSIONS CURRENT=$CURRENT LINK=$LINK KEEP=$KEEP debuntu_ruby_rbenv_install_latest
+}
+
+function debuntu_ruby_rbenv_install_latest {
+if [[ -z $LINK || -z $CURRENT || -z ${OLD_VERSIONS} || -n $HELP ]]; then
+cat <<EOF 
+
+  required vars: 
+
+  OLD_VERSIONS ($OLD_VERSION)
+  CURRENT ($CURRENT)
+  LINK ($LINK)
+
+  optional vars:
+
+  KEEP
+
+EOF
+return
+fi
+
+VERSIONS_DIR="${HOME}"/.rbenv/versions
+
+for V in ${OLD_VERSIONS[@]}; do
+  echo "removing $V if exists"
+  rm -rf  "$VERSIONS_DIR"/"${V}"
+done 
+
+
+if [[ -n $KEEP ]]; then
+  echo "keeping current if exists; checking $VERSIONS_DIR/$CURRENT"
+  if [ ! -d "$VERSIONS_DIR/$CURRENT" ]; then
+    echo "did not found existing $CURRENT ruby, installing ... " 
+    VERSION=$CURRENT LINK=$LINK debuntu_ruby_rbenv_install_ruby 
+  else
+    echo "found existing $CURRENT ruby, done." 
+  fi
+else
+  echo "forcing reinstall"
+  rm -rf "$VERSIONS_DIR"/"$CURRENT"
+  VERSION=$CURRENT LINK=$LINK debuntu_ruby_rbenv_install_ruby 
+fi
+
 }
 
 function debuntu_ruby_rbenv_install_ruby {
-RUBY=$1
+if [[ -z $VERSION || -n $HELP ]]; then
+cat <<EOF 
+  
+  Install a ruby version. 
+  
+  required vars: 
+
+    VERSION 
+
+    e.g. VERSION='2.0.0-p247'
+
+  optional vars: 
+
+    LINK
+
+    e.g. LINK='ruby-2.0.0'
+EOF
+return 
+fi
+
 
 source /etc/profile.d/rbenv.sh
 load_rbenv;
-rbenv install -f $RUBY;
-rbenv shell $RUBY;
+rbenv install -f $VERSION;
+rbenv shell $VERSION;
 rbenv rehash;
 gem update --system;
 gem install rubygems-update;
-update_rubygems;
 gem install bundler;
 rbenv rehash;
 
-if [ -n "$2" ]; then 
-  LINK=$2
+if [[ -n $LINK ]]; then 
   rm -f ~/.rbenv/versions/$LINK;
-  ln -s  ~/.rbenv/versions/$RUBY/ ~/.rbenv/versions/$LINK;
+  ln -s  ~/.rbenv/versions/$VERSION/ ~/.rbenv/versions/$LINK;
 fi
+
 }
 
 function debuntu_ruby_rbenv_install_ruby_1.9.3 {
@@ -494,41 +571,40 @@ fi
 }
 
 function debuntu_ruby_rbenv_install_ruby_2.0.0 {
-#!/bin/bash
+if [[ -n $HELP ]]; then
+cat <<EOF 
 
-# $1 == KEEP ; do not force to reinstall from scratch
-# $2 == REMOVE-PREVIOUS ; remove all previous patch versions
+  Install latest ruby 2.0.0 and remove all other patcheѕ.
+  This version is then kown to rbenv by ruby-2.0.0.
+ 
+  optional vars:
+
+  KEEP (non empty string) will preserve the currently existing if it is up to the lates patchlevel.
+EOF
+return
+fi
 
 CURRENT='2.0.0-p247'
 LINK='ruby-2.0.0'
 declare -a OLD_VERSIONS=("2.0.0-p0" "2.0.0-p195")
 
-VESIONS_DIR="${HOME}"/.rbenv/versions
+OLD_VERSIONS=$OLD_VERSIONS CURRENT=$CURRENT LINK=$LINK KEEP=$KEEP debuntu_ruby_rbenv_install_latest
 
-if [ "$2" == "REMOVE-PREVIOUS" ]; then
-  for V in ${OLD_VERSIONS[@]}; do
-    removing $V
-    rm -rf  "$VERSIONS"/"${V}"
-  done 
-fi 
 
-if [ "$1" == "KEEP" ]; then
-  if [ ! -d "$VERSIONS"/"$CURRENT" ]; then
-    debuntu_ruby_rbenv_install_ruby "$CURRENT" "$LINK"
-  fi
-else
-  rm -rf "$VERSIONS"/"$CURRENT"
-  debuntu_ruby_rbenv_install_ruby "$CURRENT" "$LINK"
-fi
 }
 
-function debuntu_ruby_rbenv_install_system_dependencies {
+function debuntu_ruby_rbenv_perpare_system {
+debuntu_ruby_rbenv_system_install_dependencies 
+debuntu_ruby_rbenv_system_setup_loader
+}
+
+function debuntu_ruby_rbenv_system_install_dependencies {
 apt-get install --assume-yes git zlib1g-dev \
   libssl-dev libxslt1-dev libxml2-dev build-essential \
   libreadline-dev libreadline6 libreadline6-dev g++
 }
 
-function debuntu_ruby_rbenv_setup_loader_function {
+function debuntu_ruby_rbenv_system_setup_loader {
 cat <<'HEREDOC0' > /etc/profile.d/rbenv.sh
 function load_rbenv {
 export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:$PATH"
