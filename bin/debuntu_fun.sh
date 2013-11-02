@@ -221,6 +221,110 @@ debuntu_database_postgresql_add_pgdg_apt_repository
 apt-get install --assume-yes postgresql-9.2 postgresql-client-9.2 postgresql-contrib-9.2 postgresql-server-dev-9.2
 }
 
+function debuntu_database_riak-cs_complete-setup {
+debuntu_database_riak-cs_sub_add-basho-apt-repository
+debuntu_database_riak-cs_sub_install
+debuntu_database_riak-cs_sub_configure
+debuntu_database_riak-cs_sub_setup-admin
+etckeeper commit 'configured riak-cs'
+}
+
+function debuntu_database_riak-cs_sub_add-basho-apt-repository {
+curl http://apt.basho.com/gpg/basho.apt.key | apt-key add -
+
+cat > /etc/apt/sources.list.d/basho.list <<EOF
+deb http://apt.basho.com $(lsb_release -sc) main 
+EOF
+
+apt-get update
+}
+
+function debuntu_database_riak-cs_sub_configure {
+
+/etc/init.d/riak-cs stop
+/etc/init.d/stanchion stop
+/etc/init.d/riak stop
+
+ulimit -n 65536
+
+cat <<'EOF' > /etc/security/limits.d/riak.conf 
+# ulimit settings for Riak CS
+root soft nofile 65536
+root hard nofile 65536
+riak soft nofile 65536
+riak hard nofile 65536
+EOF
+
+curl "https://raw.github.com/DrTom/debuntu_setup_scripts/master/data/riak-cs-config.patch" | git apply --directory /etc
+
+etckeeper commit "Configured riak-cs"
+
+/etc/init.d/riak start
+/etc/init.d/stanchion start
+/etc/init.d/riak-cs start
+sleep 3
+}
+
+function debuntu_database_riak-cs_sub_install {
+apt-get --assume-yes install riak riak-cs stanchion
+/etc/init.d/riak start
+/etc/init.d/stanchion start
+/etc/init.d/riak-cs start
+}
+
+function debuntu_database_riak-cs_sub_setup-admin {
+apt-get install -y ruby1.9.3 
+
+/etc/init.d/stanchion restart
+/etc/init.d/riak-cs restart
+
+sleep 5
+
+ruby <<'EOF' 
+
+require 'json'
+require 'net/http'
+require 'rubygems'
+
+
+req = Net::HTTP::Post.new('/riak-cs/user', initheader = {'Content-Type' =>'application/json'})
+req.body = {email:"#{rand}@example.com", name:"admin user #{rand}"}.to_json 
+response = Net::HTTP.new('localhost', '8282').start {|http| http.request(req) }
+puts "Response #{response.code} #{response.message}: #{response.body}"
+
+data= JSON.parse response.body
+
+access_key= data["key_id"]
+secret_key= data["key_secret"]
+
+
+%w(/etc/riak-cs/app.config /etc/stanchion/app.config).each do |filepath|
+  puts "processing #{filepath}"
+  s = IO.read(filepath) \
+    .gsub(/{admin_key\s*,\s*"\S*"\s*}/, %<{admin_key,"#{access_key}"}>) \
+    .gsub(/{admin_secret\s*,\s*"\S*"\s*}/, %<{admin_secret,"#{secret_key}"}>)
+  IO.write(filepath,s)
+end
+
+IO.write("/etc/profile.d/riak_cs_cred.sh", %<
+export RIAK_CS_ACCESS_KEY='#{access_key}'
+export RIAK_CS_SECRET_KEY='#{secret_key}'
+export RIAK_CS_PORT=8282
+>)
+
+puts "Access-Key: #{access_key}"
+puts "Secret-Key: #{secret_key}"
+
+EOF
+
+/etc/init.d/stanchion restart
+/etc/init.d/riak-cs restart
+
+cat <<'EOF'
+Riak cs admin is configured. See and source '/etc/profile.d/riak_cs_cred.sh'.
+EOF
+}
+
 function debuntu_invoke_as_user {
 TEMPFILE=`mktemp /tmp/debuntu-fun-XXXXXX`
 chmod a+rx $TEMPFILE

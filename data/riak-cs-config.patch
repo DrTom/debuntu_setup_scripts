@@ -1,0 +1,102 @@
+From 76ad447ee96d5f861e4889b85347d6c709603699 Mon Sep 17 00:00:00 2001
+From: Thomas Schank <DrTom@schank.ch>
+Date: Sat, 2 Nov 2013 02:02:30 +0100
+Subject: [PATCH] Configured riak-cs and stanchion
+
+---
+ riak-cs/app.config   |    6 +++---
+ riak/app.config      |   22 +++++++++++++++++++---
+ stanchion/app.config |    2 +-
+ 3 files changed, 23 insertions(+), 7 deletions(-)
+
+diff --git a/riak-cs/app.config b/riak-cs/app.config
+index b596cf0..48fc4cc 100644
+--- a/riak-cs/app.config
++++ b/riak-cs/app.config
+@@ -7,8 +7,8 @@
+ 
+               %% Riak CS http/https port and IP address to listen at
+               %% for object storage activity
+-              {cs_ip, "127.0.0.1"},
+-              {cs_port, 8080 } ,
++              {cs_ip, "0.0.0.0"},
++              {cs_port, 8282 } ,
+ 
+               %% Riak node to which Riak CS accesses
+               {riak_ip, "127.0.0.1"},
+@@ -25,7 +25,7 @@
+               %% enable this temporarily unless your use-case
+               %% specifically dictates letting anonymous users to
+               %% create accounts.
+-              {anonymous_user_creation, false},
++              {anonymous_user_creation, true},
+ 
+               %% Admin user credentials. Admin access like
+               %% /riak-cs/stats requires this entry to be set
+diff --git a/riak/app.config b/riak/app.config
+index 818d3c9..ab2c346 100644
+--- a/riak/app.config
++++ b/riak/app.config
+@@ -12,11 +12,14 @@
+              
+             %% pb is a list of IP addresses and TCP ports that the Riak 
+             %% Protocol Buffers interface will bind.
+-            {pb, [ {"127.0.0.1", 8087 } ]}
++            {pb, [ {"0.0.0.0", 8087 } ]}
+             ]},
+ 
+  %% Riak Core config
+  {riak_core, [
++
++	      {default_bucket_props, [{allow_mult, true}]},
++
+               %% Default location of ringstate
+               {ring_state_dir, "/var/lib/riak/ring"},
+ 
+@@ -26,7 +29,7 @@
+ 
+               %% http is a list of IP addresses and TCP ports that the Riak
+               %% HTTP interface will bind.
+-              {http, [ {"127.0.0.1", 8098 } ]},
++              {http, [ {"0.0.0.0", 8098 } ]},
+ 
+               %% https is a list of IP addresses and TCP ports that the Riak
+               %% HTTPS interface will bind.
+@@ -80,7 +83,20 @@
+  {riak_kv, [
+             %% Storage_backend specifies the Erlang module defining the storage
+             %% mechanism that will be used on this node.
+-            {storage_backend, riak_kv_bitcask_backend},
++
++		{add_paths, ["/usr/lib/riak-cs/lib/riak_cs-1.4.2/ebin"]},
++		{storage_backend, riak_cs_kv_multi_backend},
++		{multi_backend_prefix_list, [{<<"0b:">>, be_blocks}]},
++		{multi_backend_default, be_default},
++		{multi_backend, [
++		    {be_default, riak_kv_eleveldb_backend, [
++			{max_open_files, 50},
++			{data_root, "/var/lib/riak/leveldb"}
++		    ]},
++		    {be_blocks, riak_kv_bitcask_backend, [
++			{data_root, "/var/lib/riak/bitcask"}
++		    ]}
++		]},
+ 
+             %% raw_name is the first part of all URLS used by the Riak raw HTTP
+             %% interface.  See riak_web.erl and raw_http_resource.erl for
+diff --git a/stanchion/app.config b/stanchion/app.config
+index bbf941e..83e9e75 100644
+--- a/stanchion/app.config
++++ b/stanchion/app.config
+@@ -3,7 +3,7 @@
+ [
+  %% Stanchion config
+  {stanchion, [
+-                   {stanchion_ip, "127.0.0.1"},
++                   {stanchion_ip, "0.0.0.0"},
+                    {stanchion_port, 8085 } ,
+ 
+                    %%{ssl, [
+-- 
+1.7.9.5
+

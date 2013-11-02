@@ -1,0 +1,5 @@
+debuntu_database_riak-cs_sub_add-basho-apt-repository
+debuntu_database_riak-cs_sub_install
+debuntu_database_riak-cs_sub_configure
+debuntu_database_riak-cs_sub_setup-admin
+etckeeper commit 'configured riak-cs'
