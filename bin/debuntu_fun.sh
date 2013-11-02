@@ -378,6 +378,8 @@ case "$OS_ID" in
     echo "none OS matched!!!"
     ;;
 esac
+update-alternatives --set java /usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
+update-alternatives --set javac /usr/lib/jvm/java-7-openjdk-amd64/bin/javac
 }
 
 function debuntu_meta_echo_test {
