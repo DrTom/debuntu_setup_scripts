@@ -1,4 +1,4 @@
-mkdir ~/bin
+mkdir -p ~/bin
 MACHINE=`uname -m`
 TMDIR=`mktemp -d`
 cd $TMPDIR

@@ -12,7 +12,7 @@ EOF
 else 
 
 
-DIR="$DIR" NAME="$NAME" USER="$USER" COMMAND="lein run" debuntu_system_misc_setup_upstart_service 
+DIR="$DIR" NAME="$NAME" USER="$USER" COMMAND="lein trampoline run" debuntu_system_misc_setup_upstart_service 
 
 
 fi  

@@ -33,7 +33,7 @@ rm -f ${TB_LINK}
 ln -s ${TB_ROOT} ${TB_LINK}
 
 LOGDIR="/var/log/torquebox/"
-mkdir $LOGDIR
+mkdir -p $LOGDIR
 chown -R torquebox $LOGDIR
 
 debuntu_torquebox_setup_env_loader

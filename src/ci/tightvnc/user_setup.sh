@@ -5,7 +5,7 @@
 # tightvncserver -kill :$DISPLAY_NUMBER -clean
 
 rm -rf ~/.vnc
-mkdir ~/.vnc
+mkdir -p ~/.vnc
 echo "$USER" | tightvncpasswd -f > ~/.vnc/passwd
 chmod go-rw ~/.vnc/passwd
 

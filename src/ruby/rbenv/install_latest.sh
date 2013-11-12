@@ -9,6 +9,7 @@ cat <<EOF
 
   optional vars:
 
+  KEEP_OLD_VERSIONS
   KEEP
 
 EOF
@@ -37,3 +38,10 @@ else
   VERSION=$CURRENT LINK=$LINK debuntu_ruby_rbenv_install_ruby 
 fi
 
+if [[ -n $LINK ]]; then 
+  echo "resetting link"
+  rm -f "$VERSIONS_DIR/$LINK";
+  ln -s  "$VERSIONS_DIR/$CURRENT" "$VERSIONS_DIR/$LINK";
+else
+  echo "no link given"
+fi

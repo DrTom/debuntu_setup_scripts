@@ -22,7 +22,7 @@ fi
 }
 
 function debuntu_ci_phantomjs_install {
-mkdir ~/bin
+mkdir -p ~/bin
 MACHINE=`uname -m`
 TMDIR=`mktemp -d`
 cd $TMPDIR
@@ -45,7 +45,7 @@ function debuntu_ci_tightvnc_user_setup {
 # tightvncserver -kill :$DISPLAY_NUMBER -clean
 
 rm -rf ~/.vnc
-mkdir ~/.vnc
+mkdir -p ~/.vnc
 echo "$USER" | tightvncpasswd -f > ~/.vnc/passwd
 chmod go-rw ~/.vnc/passwd
 
@@ -358,7 +358,7 @@ EOF
 else 
 
 
-DIR="$DIR" NAME="$NAME" USER="$USER" COMMAND="lein run" debuntu_system_misc_setup_upstart_service 
+DIR="$DIR" NAME="$NAME" USER="$USER" COMMAND="lein trampoline run" debuntu_system_misc_setup_upstart_service 
 
 
 fi  
@@ -570,6 +570,7 @@ cat <<EOF
 
   optional vars:
 
+  KEEP_OLD_VERSIONS
   KEEP
 
 EOF
@@ -598,6 +599,13 @@ else
   VERSION=$CURRENT LINK=$LINK debuntu_ruby_rbenv_install_ruby 
 fi
 
+if [[ -n $LINK ]]; then 
+  echo "resetting link"
+  rm -f "$VERSIONS_DIR/$LINK";
+  ln -s  "$VERSIONS_DIR/$CURRENT" "$VERSIONS_DIR/$LINK";
+else
+  echo "no link given"
+fi
 }
 
 function debuntu_ruby_rbenv_install_ruby {
@@ -640,40 +648,24 @@ fi
 }
 
 function debuntu_ruby_rbenv_install_ruby_1.9.3 {
-# $1 == KEEP ; do not force to reinstall from scratch
-# $2 == REMOVE-PREVIOUS ; remove all previous patch versions
+if [[ -n $HELP ]]; then
+cat <<EOF 
+
+  Install latest ruby 2.0.0 and remove all other patcheѕ.
+  This version is then kown to rbenv by ruby-2.0.0.
+ 
+  optional vars:
+
+  KEEP (non empty string) will preserve the currently existing if it is up to the lates patchlevel.
+EOF
+return
+fi
 
 CURRENT='1.9.3-p448'
 LINK='ruby-1.9.3'
-declare -a OLD_VERSIONS=("1.9.3-p0" "1.9.3-p125" "1.9.3-p194"  \
-    "1.9.3-p286" "1.9.3-p327" "1.9.3-p362" "1.9.3-p374" "1.9.3-p385" \
-    "1.9.3-p392" "1.9.3-p429")
+declare -a OLD_VERSIONS=("1.9.3-p0" "1.9.3-p125" "1.9.3-p194" "1.9.3-p286" "1.9.3-p327" "1.9.3-p362" "1.9.3-p374" "1.9.3-p385" "1.9.3-p392" "1.9.3-p429")
 
-VERSIONS_DIR="${HOME}"/.rbenv/versions
-
-echo $1
-echo $2
-
-if [ "$1" == "KEEP" ]; then
-  if [ ! -d "${VERSIONS_DIR}/${CURRENT}" ]; then
-     debuntu_ruby_rbenv_install_ruby "$CURRENT" "$LINK"
-   else
-     echo "Found and keeping ${CURRENT}"
-  fi
-else
-  rm -rf "${VERSIONS_DIR}/${CURRENT}"
-  debuntu_ruby_rbenv_install_ruby "$CURRENT" "$LINK"
-fi
-
-if [ "$2" == "REMOVE-PREVIOUS" ]; then
-  for V in ${OLD_VERSIONS[@]}; do
-    if [ ! -d "${VERSIONS_DIR}/${V}" ]; then
-      echo "removing $V"
-      rm -rf  "$VERSIONS_DIR"/"${V}"
-    fi
-  done 
-fi 
-
+OLD_VERSIONS=$OLD_VERSIONS CURRENT=$CURRENT LINK=$LINK KEEP=$KEEP debuntu_ruby_rbenv_install_latest
 }
 
 function debuntu_ruby_rbenv_install_ruby_2.0.0 {
@@ -699,7 +691,7 @@ OLD_VERSIONS=$OLD_VERSIONS CURRENT=$CURRENT LINK=$LINK KEEP=$KEEP debuntu_ruby_r
 
 }
 
-function debuntu_ruby_rbenv_perpare_system {
+function debuntu_ruby_rbenv_prepare-system {
 debuntu_ruby_rbenv_system_install_dependencies 
 debuntu_ruby_rbenv_system_setup_loader
 }
@@ -820,6 +812,28 @@ export LC_ALL=en_US.UTF-8
 HEREDOC0
 }
 
+function debuntu_system_misc_setup_init_service {
+if [[ -z $DIR || -z $NAME || -z $USER || -z $COMMAND || -n $HELP ]]; then
+cat <<EOF 
+  Sets up a (rather simple) system service.
+  
+  Requires the following variables to be set:
+
+  DIR absolute path where to cd before starting the service
+  NAME name of the service
+  USER the user under which the service will run
+  COMMAND the command executed 
+EOF
+exit 0 # replace with return
+fi
+
+ruby <<'EOF'
+ENV.each do |k,v|
+ puts "#{k}: #{v}"
+end
+EOF
+}
+
 function debuntu_system_misc_setup_logrotate {
 if [[ -z $DIR_MATCHERS || -z $NAME || -n $HELP ]]; then
 cat <<EOF 
@@ -853,6 +867,19 @@ echo "The logrotation for $NAME has been defined in $LOGROTATE_SCRIPT_PATH"
 echo "To manually trigger rotation invoke: \"logrotate -d -v $LOGROTATE_SCRIPT_PATH\""
 
 fi
+}
+
+function debuntu_system_misc_setup_service {
+# dispatching on debuntu_system_meta_os-name
+case `debuntu_system_meta_os-name` in
+  Debian*)
+    # DIR="$DIR" NAME="$NAME" USER="$USER" COMMAND=$COMMAND debuntu_system_misc_setup_init_service 
+    echo "general init scripts on debian are not supported yet"
+    ;;
+  Ubuntu*)
+    DIR="$DIR" NAME="$NAME" USER="$USER" COMMAND=$COMMAND debuntu_system_misc_setup_upstart_service 
+    ;;
+esac
 }
 
 function debuntu_system_misc_setup_upstart_service {
@@ -953,7 +980,7 @@ rm -f ${TB_LINK}
 ln -s ${TB_ROOT} ${TB_LINK}
 
 LOGDIR="/var/log/torquebox/"
-mkdir $LOGDIR
+mkdir -p $LOGDIR
 chown -R torquebox $LOGDIR
 
 debuntu_torquebox_setup_env_loader
@@ -1287,7 +1314,7 @@ rm -f /etc/init/torquebox.conf
 function debuntu_zhdk_domina-slave_complete-setup-as-user {
 debuntu_zhdk_ssh_add-keys
 debuntu_ci_chromedriver_install
-debuntu_zhdk_ci_ruby_install
+debuntu_zhdk_domina-slave_ruby_install
 debuntu_ci_phantomjs_install
 debuntu_ci_tightvnc_user_setup
 }
@@ -1296,14 +1323,16 @@ function debuntu_zhdk_domina-slave_complete-setup {
 # domina_ci_executor
 debuntu_jvm_open_jdk_install
 adduser --disabled-password -gecos "" domina
-debuntu_zhdk_domina-ci-executor_setup
+debuntu_zhdk_domina-slave_domina-ci-executor_setup
 
 # pg
 debuntu_database_postgresql_install_9.2
 debuntu_database_postgresql_add_superuser domina
 
+# other
 debuntu_ci_tightvnc_install
-debuntu_invoke_as_user domina debuntu_zhdk_complete-setup-as-user
+debuntu_ruby_rbenv_prepare-system
+debuntu_invoke_as_user domina debuntu_zhdk_domina-slave_complete-setup-as-user
 }
 
 function debuntu_zhdk_domina-slave_domina-ci-executor_as-domina-setup {
@@ -1332,7 +1361,7 @@ debuntu_jvm_leiningen_install
 }
 
 function debuntu_zhdk_domina-slave_domina-ci-executor_setup {
-stop domina
+service domina stop
 MATCHER='java.*domina'
 pgrep -f "$MATCHER"
 if [ $? -ne 0 ]; then
@@ -1344,34 +1373,19 @@ if [ $? -ne 0 ]; then
   sleep 10
   pkill -SIGKILL -f "$MATCHER"
 fi
-stop domina
+service domina stop
+debuntu_invoke_as_user domina debuntu_zhdk_domina-slave_domina-ci-executor_as-domina-setup
 
-debuntu_invoke_as_user domina debuntu_zhdk_domina-ci-executor_as-domina-setup
+DIR=/home/domina/domina_ci_executor/ NAME=domina USER=domina debuntu_jvm_leiningen_setup_system_service
 
-cat <<'EOF' > /etc/logrotate.d/domina
-var/log/domina/*.log {
-  daily
-  missingok
-  size 1M
-  rotate 21
-  compress
-  delaycompress
-  notifempty
-  copytruncate
-}
-EOF
-
-cp /home/domina/domina_ci_executor/doc/upstart-domina.conf /etc/init/domina.conf
 start domina
 }
 
 function debuntu_zhdk_domina-slave_ruby_gherkin_setup_ragel_lexer {
-RBENV_RUBY_VERSION=${1:-"ruby-2.0.0"}
-GEMS_VERSION=${2:-"2.0.0"}
-GHERKIN_VERSION=${3:-"2.12.0"}
 SDIR=$(pwd)
 echo Setting up ragle for $RBENV_RUBY_VERSION $GEMS_VERSION $GHERKIN_VERSION
 load_rbenv \
+&& rbenv rehash \
 && rbenv shell $RBENV_RUBY_VERSION \
 && gem install gherkin -v ${GHERKIN_VERSION} \
 && cd ~/.rbenv/versions/$RBENV_RUBY_VERSION/lib/ruby/gems/${GEMS_VERSION}/gems/gherkin-${GHERKIN_VERSION}/  \
@@ -1383,9 +1397,9 @@ load_rbenv \
 
 function debuntu_zhdk_domina-slave_ruby_install {
 debuntu_ruby_rbenv_install
-debuntu_ruby_rbenv_install_ruby_1.9.3 KEEP REMOVE-PREVIOUS
-debuntu_ruby_rbenv_install_ruby_2.0.0 KEEP REMOVE-PREVIOUS
-debuntu_zhdk_ci_ruby_gherkin_setup_ragel_lexer "ruby-1.9.3" "1.9.1" "2.12.0"
+KEEP=true debuntu_ruby_rbenv_install_ruby_1.9.3 
+KEEP=true debuntu_ruby_rbenv_install_ruby_2.0.0 
+RBENV_RUBY_VERSION="ruby-1.9.3" GEMS_VERSION="1.9.1" GHERKIN_VERSION="2.12.0" debuntu_zhdk_domina-slave_ruby_gherkin_setup_ragel_lexer
 }
 
 function debuntu_zhdk_ssh_add-keys {

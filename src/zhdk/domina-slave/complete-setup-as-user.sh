@@ -1,5 +1,5 @@
 debuntu_zhdk_ssh_add-keys
 debuntu_ci_chromedriver_install
-debuntu_zhdk_ci_ruby_install
+debuntu_zhdk_domina-slave_ruby_install
 debuntu_ci_phantomjs_install
 debuntu_ci_tightvnc_user_setup
