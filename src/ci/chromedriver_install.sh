@@ -1,7 +1,7 @@
 TMDIR=`mktemp -d`
 cd $TMDIR
 MACHINE_BITS=`uname -m | cut -d '_' -f 2`
-curl -s -L "http://chromedriver.storage.googleapis.com/2.4/chromedriver_linux${MACHINE_BITS}.zip" > chromedriver.zip
+curl -s -L "http://chromedriver.storage.googleapis.com/2.6/chromedriver_linux${MACHINE_BITS}.zip" > chromedriver.zip
 unzip chromedriver.zip
 mv chromedriver ~/bin
 cd
