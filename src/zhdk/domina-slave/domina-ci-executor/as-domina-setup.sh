@@ -1,4 +1,4 @@
-debuntu_ci_domina-ci-executor_install "0.6.1"
+debuntu_ci_domina-ci-executor_install "0.7.0"
 
 cat <<'EOF' > ~/domina_ci_executor/domina_conf.clj
 {
