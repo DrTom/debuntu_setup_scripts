@@ -526,7 +526,7 @@ debuntu_ruby_rbenv_install_ruby_2.0.0
 }
 
 function debuntu_rails-server_setup {
-debuntu_torquebox_install_3.0.0
+debuntu_torquebox_install_3.0.1
 debuntu_database_postgresql_install_9.2
 debuntu_database_postgresql_add_superuser torquebox
 debuntu_ruby_rbenv_prepare_system
@@ -944,10 +944,10 @@ debuntu_system_misc_vim_setup
 debuntu_system_misc_etckeeper_setup
 }
 
-function debuntu_torquebox_install_3.0.0 {
-TB_URL="http://torquebox.org/release/org/torquebox/torquebox-dist/3.0.0/torquebox-dist-3.0.0-bin.zip"
-TB_VERSION="3.0.0"
-TB_ROOT="/opt/torquebox-3.0.0"
+function debuntu_torquebox_install_3.0.1 {
+TB_URL="http://torquebox.org/release/org/torquebox/torquebox-dist/3.0.1/torquebox-dist-3.0.1-bin.zip"
+TB_VERSION="3.0.1"
+TB_ROOT="/opt/torquebox-3.0.1"
 
 TMP_FILE="/tmp/torquebox-${TB_VERSION}.zip"
 TB_LINK="/opt/torquebox"

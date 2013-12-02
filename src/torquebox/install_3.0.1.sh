@@ -1,6 +1,6 @@
-TB_URL="http://torquebox.org/release/org/torquebox/torquebox-dist/3.0.0/torquebox-dist-3.0.0-bin.zip"
-TB_VERSION="3.0.0"
-TB_ROOT="/opt/torquebox-3.0.0"
+TB_URL="http://torquebox.org/release/org/torquebox/torquebox-dist/3.0.1/torquebox-dist-3.0.1-bin.zip"
+TB_VERSION="3.0.1"
+TB_ROOT="/opt/torquebox-3.0.1"
 
 TMP_FILE="/tmp/torquebox-${TB_VERSION}.zip"
 TB_LINK="/opt/torquebox"
