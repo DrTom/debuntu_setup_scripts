@@ -1336,7 +1336,7 @@ debuntu_invoke_as_user domina debuntu_zhdk_domina-slave_complete-setup-as-user
 }
 
 function debuntu_zhdk_domina-slave_domina-ci-executor_as-domina-setup {
-debuntu_ci_domina-ci-executor_install "0f29030d20ec9304f5d8522eac335620c5367918"
+debuntu_ci_domina-ci-executor_install "b366898b0101b77a99453cfb14772e6d4c610d3c"
 
 cat <<'EOF' > ~/domina_ci_executor/domina_conf.clj
 {
