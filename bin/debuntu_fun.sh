@@ -1046,6 +1046,28 @@ OLD_VERSIONS=$OLD_VERSIONS CURRENT=$CURRENT LINK=$LINK KEEP=$KEEP debuntu_ruby_r
 
 }
 
+function debuntu_ruby_rbenv_install_ruby_2.1.0 {
+if [[ -n $HELP ]]; then
+cat <<EOF 
+
+  Install latest ruby 2.1.0 and remove all other patcheѕ.
+  This version is then known to rbenv by ruby-2.1.0.
+ 
+  optional vars:
+
+  KEEP (non empty string) will preserve the currently existing if it is up to the lates patchlevel.
+EOF
+return
+fi
+
+CURRENT='2.1.0'
+LINK='ruby-2.1.0'
+declare -a OLD_VERSIONS=()
+
+OLD_VERSIONS=$OLD_VERSIONS CURRENT=$CURRENT LINK=$LINK KEEP=$KEEP debuntu_ruby_rbenv_install_latest
+
+}
+
 function debuntu_ruby_rbenv_prepare-system {
 debuntu_ruby_rbenv_system_install_dependencies 
 debuntu_ruby_rbenv_system_setup_loader
@@ -1335,7 +1357,7 @@ debuntu_invoke_as_user domina debuntu_zhdk_domina-slave_complete-setup-as-user
 }
 
 function debuntu_zhdk_domina-slave_domina-ci-executor_as-domina-setup {
-debuntu_ci_domina-ci-executor_install "b366898b0101b77a99453cfb14772e6d4c610d3c"
+debuntu_ci_domina-ci-executor_install "404f76086a962218d4b2bcb10d95f3f53ebd4e32"
 
 cat <<'EOF' > ~/domina_ci_executor/domina_conf.clj
 {
@@ -1398,6 +1420,7 @@ function debuntu_zhdk_domina-slave_ruby_install {
 debuntu_ruby_rbenv_install
 KEEP=true debuntu_ruby_rbenv_install_ruby_1.9.3 
 KEEP=true debuntu_ruby_rbenv_install_ruby_2.0.0 
+KEEP=true debuntu_ruby_rbenv_install_ruby_2.1.0 
 RBENV_RUBY_VERSION="ruby-1.9.3" GEMS_VERSION="1.9.1" GHERKIN_VERSION="2.12.0" debuntu_zhdk_domina-slave_ruby_gherkin_setup_ragel_lexer
 }
 
