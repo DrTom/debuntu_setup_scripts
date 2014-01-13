@@ -16,8 +16,6 @@ EOF
 return
 fi
 
-load_rbenv
-
 VERSIONS_DIR="${HOME}"/.rbenv/versions
 
 for V in ${OLD_VERSIONS[@]}; do

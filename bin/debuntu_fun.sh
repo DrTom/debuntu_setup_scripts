@@ -932,8 +932,6 @@ EOF
 return
 fi
 
-load_rbenv
-
 VERSIONS_DIR="${HOME}"/.rbenv/versions
 
 for V in ${OLD_VERSIONS[@]}; do
@@ -1064,7 +1062,7 @@ fi
 
 CURRENT='2.1.0'
 LINK='ruby-2.1.0'
-declare -a OLD_VERSIONS=("asdf.asdfa.fasdf")
+declare -a OLD_VERSIONS=()
 
 OLD_VERSIONS=$OLD_VERSIONS CURRENT=$CURRENT LINK=$LINK KEEP=$KEEP debuntu_ruby_rbenv_install_latest
 
