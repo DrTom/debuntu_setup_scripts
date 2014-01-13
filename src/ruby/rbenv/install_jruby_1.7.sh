@@ -11,8 +11,8 @@ EOF
 return
 fi
 
-CURRENT='jruby-1.7.5'
+CURRENT='jruby-1.7.9'
 LINK='jruby-1.7'
-declare -a OLD_VERSIONS=("jruby-1.7.4")
+declare -a OLD_VERSIONS=("jruby-1.7.4" "jruby-1.7.5")
 
 OLD_VERSIONS=$OLD_VERSIONS CURRENT=$CURRENT LINK=$LINK KEEP=$KEEP debuntu_ruby_rbenv_install_latest

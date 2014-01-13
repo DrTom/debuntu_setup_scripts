@@ -1,2 +1,3 @@
 debuntu_ruby_rbenv_install
 debuntu_ruby_rbenv_install_ruby_2.0.0
+debuntu_ruby_rbenv_install_jruby_1.7

@@ -1,4 +1,4 @@
-cat <<'HEREDOC0' > /etc/init.d/torquebox
+cat <<'HEREDOC0' > /etc/init.d/polyglot-as
 #!/bin/bash -e
 #
 # Example init.d script with LSB support.
@@ -26,41 +26,49 @@ cat <<'HEREDOC0' > /etc/init.d/torquebox
 # Suite 330, Boston, MA 02111-1307 USA
 #
 ### BEGIN INIT INFO
-# Provides:          torquebox
+# Provides:          polyglot-as
 # Required-Start:    $network $local_fs
 # Required-Stop:
 # Should-Start:      $named
 # Should-Stop:
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: Torquebox Application Server
-# Description:       A JRuby application server based on JBoss AS 7 
+# Short-Description: Polyglot Application Server 
+# Description:       Polyglot Application Server based on JBoss AS 7 slim
 ### END INIT INFO
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 . /lib/lsb/init-functions
 
-source /etc/profile.d/torquebox.sh
-load_torquebox_env
+export JRUBY_OPTS="--1.9"
+export JAVA_OPTS="-server -Xms64m -Xmx32G -XX:MaxPermSize=2G"
+export JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true -Dorg.jboss.resolver.warning=true"
+export JAVA_OPTS="$JAVA_OPTS -Dsun.rmi.dgc.client.gcInterval=3600000 -Dsun.rmi.dgc.server.gcInterval=3600000"
+export JAVA_OPTS="$JAVA_OPTS -Djboss.modules.system.pkgs=$JBOSS_MODULES_SYSTEM_PKGS -Djava.awt.headless=true"
+export JAVA_OPTS="$JAVA_OPTS -Djboss.server.default.config=standalone.xml"
+export POLYGLOT_AS_HOME=/opt/polyglot-application-server/server
+export JBOSS_HOME=${POLYGLOT_AS_HOME}/jboss
+export JRUBY_HOME=${POLYGLOT_AS_HOME}/jruby
+export PATH=${POLYGLOT_AS_HOME}/bin:${JBOSS_HOME}/bin:${JRUBY_HOME}/bin:${PATH}
 
-TORQUEBOX_SERVER=standalone.xml
+POLYGLOT_AS_SERVER=standalone.xml
 RUN=yes
 
-NAME=torquebox
-DESC="Torquebox Application Server"
+NAME=polyglot-as
+DESC="Polyglot Application Server"
 LOGDIR=/var/log/$NAME
 LOGFILE=$LOGDIR/$NAME.log
 PIDFILE=/var/run/$NAME.pid
 DIETIME=15
 STARTTIME=10
-DAEMONUSER=torquebox
+DAEMONUSER=polyglot-as
 
-#TORQUEBOX_HOME=/usr/share/$NAME
+#POLYGLOT_AS_HOME=/usr/share/$NAME
 # . /etc/default/$NAME || exit 1
 
-TORQUEBOX_START="$TORQUEBOX_HOME/jboss/bin/standalone.sh"
-TORQUEBOX_STOP="$TORQUEBOX_HOME/jboss/bin/jboss-cli.sh --connect command=:shutdown"
+POLYGLOT_AS_START="$POLYGLOT_AS_HOME/jboss/bin/standalone.sh"
+POLYGLOT_AS_STOP="$POLYGLOT_AS_HOME/jboss/bin/jboss-cli.sh --connect command=:shutdown"
 
 
 if [ "x$RUN" != "xyes" ] ; then
@@ -83,7 +91,7 @@ set -e
 
 
 running() {
-  PID=`ps -fu torquebox | grep jboss-modules.jar | grep -v grep | awk {'print $2'}`
+  PID=`ps -fu polyglot-as | grep jboss-modules.jar | grep -v grep | awk {'print $2'}`
   if [[ -f /proc/$PID/cmdline && -n $PID ]] ; then
     return 0
   else
@@ -92,10 +100,10 @@ running() {
 }
 
 start_server() {
-  echo "`date`: Starting $DESC: $TORQUEBOX_SERVER" >> $LOGFILE
+  echo "`date`: Starting $DESC: $POLYGLOT_AS_SERVER" >> $LOGFILE
   log_progress_msg "(this will take $STARTTIME seconds) "
   start-stop-daemon --start --quiet --chuid $DAEMONUSER  \
-    --exec $TORQUEBOX_START --pidfile $PIDFILE --make-pidfile -- -c $TORQUEBOX_SERVER >> $LOGFILE 2>&1 &
+    --exec $POLYGLOT_AS_START --pidfile $PIDFILE --make-pidfile -- -c $POLYGLOT_AS_SERVER >> $LOGFILE 2>&1 &
   sleep $STARTTIME
   if running ; then
     log_success_msg "- successfully started"
@@ -108,9 +116,9 @@ start_server() {
 }
 
 stop_server() {
-  echo "`date`: Stopping $DESC: $TORQUEBOX_SERVER" >> $LOGFILE
+  echo "`date`: Stopping $DESC: $POLYGLOT_AS_SERVER" >> $LOGFILE
   log_progress_msg "(this will take $DIETIME seconds) "
-  $TORQUEBOX_STOP >> $LOGFILE 2>&1
+  $POLYGLOT_AS_STOP >> $LOGFILE 2>&1
   sleep $DIETIME
   if running ; then
     log_failure_msg "- stopping failed. Try $0 force-stop "
@@ -124,11 +132,11 @@ stop_server() {
 
 force_stop_server() {
   echo "`date`: Stopping (force) $NAME with pkill" >> $LOGFILE
-  pkill -u torquebox >> $LOGFILE
+  pkill -u polyglot-as >> $LOGFILE
   sleep $DIETIME
   if running ; then
     echo "`date`: Stopping (force) $NAME with pkill -9" >> $LOGFILE
-    pkill -9 -u torquebox >> $LOGFILE
+    pkill -9 -u polyglot-as >> $LOGFILE
   fi
   if running ; then
     echo "`date`: force-stop failed." >> $LOGFILE
@@ -143,7 +151,7 @@ force_stop_server() {
 
 case "$1" in
   start)
-    log_begin_msg "Starting $DESC: $TORQUEBOX_SERVER "
+    log_begin_msg "Starting $DESC: $POLYGLOT_AS_SERVER "
     if running ; then
       echo "`date`: $NAME running, therefore not trying to start" >> $LOGFILE
       log_success_msg "- apparently already running"
@@ -153,10 +161,10 @@ case "$1" in
     ;;
 
   stop)
-    if [ $TORQUEBOX_SERVER == "minimal" ] || [ $TORQUEBOX_SERVER == "web" ] ; then
+    if [ $POLYGLOT_AS_SERVER == "minimal" ] || [ $POLYGLOT_AS_SERVER == "web" ] ; then
       $0 force-stop
     else
-      log_begin_msg "Stopping $DESC: $TORQUEBOX_SERVER "
+      log_begin_msg "Stopping $DESC: $POLYGLOT_AS_SERVER "
       if running ; then
         stop_server
       else
@@ -167,7 +175,7 @@ case "$1" in
     ;;
 
   force-stop)
-    log_begin_msg "Force-stopping $DESC: $TORQUEBOX_SERVER "
+    log_begin_msg "Force-stopping $DESC: $POLYGLOT_AS_SERVER "
     if running ; then
       force_stop_server
     else
@@ -177,8 +185,8 @@ case "$1" in
     ;;
 
   restart|force-reload)
-    if [ $TORQUEBOX_SERVER == "minimal" ] || [ $TORQUEBOX_SERVER == "web" ] ; then
-      log_begin_msg "Force-stopping $DESC: $TORQUEBOX_SERVER "
+    if [ $POLYGLOT_AS_SERVER == "minimal" ] || [ $POLYGLOT_AS_SERVER == "web" ] ; then
+      log_begin_msg "Force-stopping $DESC: $POLYGLOT_AS_SERVER "
       if running ; then
         force_stop_server
       else
@@ -187,7 +195,7 @@ case "$1" in
         exit 0
       fi
     else
-      log_begin_msg "Stopping $DESC: $TORQUEBOX_SERVER "
+      log_begin_msg "Stopping $DESC: $POLYGLOT_AS_SERVER "
       if running ; then
         stop_server
       else
@@ -196,7 +204,7 @@ case "$1" in
         exit 0
       fi
     fi
-    log_begin_msg "Starting $DESC: $TORQUEBOX_SERVER "
+    log_begin_msg "Starting $DESC: $POLYGLOT_AS_SERVER "
     if running ; then
       echo "`date`: $NAME running, therefore not trying to start" >> $LOGFILE
       log_success_msg "- apparently already running"
@@ -206,7 +214,7 @@ case "$1" in
     ;;
 
   status)
-    log_begin_msg "Checking status of $DESC: $TORQUEBOX_SERVER "
+    log_begin_msg "Checking status of $DESC: $POLYGLOT_AS_SERVER "
     echo "`date`: Checking status of $DESC: " >> $LOGFILE
     if running ; then
       log_success_msg "- apparently running"
@@ -233,4 +241,4 @@ esac
 exit 0
 HEREDOC0
 
-chmod a+x /etc/init.d/torquebox
+chmod a+x /etc/init.d/polyglot-as

@@ -203,16 +203,11 @@ EOF
 function debuntu_database_postgresql_add_superuser {
 echo "ADDING SUPERUSER $1 TO POSTGRES"
 PG_USER=$1
-if [ -n $2 ]; then
-  PG_PW="$2"
-else
-  PG_PW="$1"
-fi
 cat << HEREDOC0 | su -l postgres -c psql
-CREATE USER $PG_USER superuser createdb login;
-ALTER USER $PG_USER WITH PASSWORD '$PG_PW';
-CREATE DATABASE $PG_USER ;
-GRANT ALL ON DATABASE $PG_USER TO $PG_USER;
+CREATE USER "$PG_USER" superuser createdb login;
+ALTER USER "$PG_USER" WITH PASSWORD '$PG_USER';
+CREATE DATABASE "$PG_USER" ;
+GRANT ALL ON DATABASE "$PG_USER" TO "$PG_USER";
 HEREDOC0
 }
 
@@ -382,6 +377,358 @@ update-alternatives --set java /usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
 update-alternatives --set javac /usr/lib/jvm/java-7-openjdk-amd64/bin/javac
 }
 
+function debuntu_jvm_polyglot-as_install {
+REPOSITORY_URL="https://github.com/DrTom/polyglot-application-server.git"
+COMMIT="6ace9d74c14dfcbd91c596d64df8e0f4d4327758"
+TARGET_DIR="/opt/polyglot-application-server"
+LOGDIR="/var/log/polyglot-as/"
+WORKDIR=`pwd`
+
+service polyglot-as stop
+pkill -SIGTERM -f 'java.*polyglot-as' 
+pkill -SIGKILL -f 'java.*polyglot-as' 
+
+
+### installing prerequisites
+debuntu_jvm_open_jdk_install
+
+adduser --disabled-password -gecos "" polyglot-as
+
+if [[ ! -d $TARGET_DIR ]]; then
+  git clone "${REPOSITORY_URL}" ${TARGET_DIR}
+  chown -R polyglot-as $TARGET_DIR
+fi
+
+cd $TARGET_DIR
+if [[  `git rev-parse --verify HEAD` != $COMMIT ]]; then
+  git fetch origin -p +refs/heads/*:refs/heads/*
+  rm -rf server 
+  git reset --hard $COMMIT
+  chown -R polyglot-as $TARGET_DIR
+fi
+
+cd $WORKDIR
+
+mkdir -p $LOGDIR
+chown -R polyglot-as $LOGDIR
+
+debuntu_jvm_polyglot_setup-logrotate
+debuntu_jvm_polyglot-as_setup-start-stop-scripts
+service polyglot-as start
+
+
+}
+
+function debuntu_jvm_polyglot-as_setup-init {
+cat <<'HEREDOC0' > /etc/init.d/polyglot-as
+#!/bin/bash -e
+#
+# Example init.d script with LSB support.
+#
+# Please read this init.d carefully and modify the sections to
+# adjust it to the program you want to run.
+#
+# Copyright 2012 Dominique Broeglin <dominique.broeglin@gmail.com>
+# Copyright 2007 Javier Fernandez-Sanguino <jfs@debian.org>
+# Copyright 2009 Philipp Hübner <philipp.huebner@credativ.de>
+#
+# This is free software; you may redistribute it and/or modify
+# it under the terms of the GNU General Public License as
+# published by the Free Software Foundation; either version 2,
+# or (at your option) any later version.
+#
+# This is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License with
+# the Debian operating system, in /usr/share/common-licenses/GPL;  if
+# not, write to the Free Software Foundation, Inc., 59 Temple Place,
+# Suite 330, Boston, MA 02111-1307 USA
+#
+### BEGIN INIT INFO
+# Provides:          polyglot-as
+# Required-Start:    $network $local_fs
+# Required-Stop:
+# Should-Start:      $named
+# Should-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Polyglot Application Server 
+# Description:       Polyglot Application Server based on JBoss AS 7 slim
+### END INIT INFO
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+. /lib/lsb/init-functions
+
+export JRUBY_OPTS="--1.9"
+export JAVA_OPTS="-server -Xms64m -Xmx32G -XX:MaxPermSize=2G"
+export JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true -Dorg.jboss.resolver.warning=true"
+export JAVA_OPTS="$JAVA_OPTS -Dsun.rmi.dgc.client.gcInterval=3600000 -Dsun.rmi.dgc.server.gcInterval=3600000"
+export JAVA_OPTS="$JAVA_OPTS -Djboss.modules.system.pkgs=$JBOSS_MODULES_SYSTEM_PKGS -Djava.awt.headless=true"
+export JAVA_OPTS="$JAVA_OPTS -Djboss.server.default.config=standalone.xml"
+export POLYGLOT_AS_HOME=/opt/polyglot-application-server/server
+export JBOSS_HOME=${POLYGLOT_AS_HOME}/jboss
+export JRUBY_HOME=${POLYGLOT_AS_HOME}/jruby
+export PATH=${POLYGLOT_AS_HOME}/bin:${JBOSS_HOME}/bin:${JRUBY_HOME}/bin:${PATH}
+
+POLYGLOT_AS_SERVER=standalone.xml
+RUN=yes
+
+NAME=polyglot-as
+DESC="Polyglot Application Server"
+LOGDIR=/var/log/$NAME
+LOGFILE=$LOGDIR/$NAME.log
+PIDFILE=/var/run/$NAME.pid
+DIETIME=15
+STARTTIME=10
+DAEMONUSER=polyglot-as
+
+#POLYGLOT_AS_HOME=/usr/share/$NAME
+# . /etc/default/$NAME || exit 1
+
+POLYGLOT_AS_START="$POLYGLOT_AS_HOME/jboss/bin/standalone.sh"
+POLYGLOT_AS_STOP="$POLYGLOT_AS_HOME/jboss/bin/jboss-cli.sh --connect command=:shutdown"
+
+
+if [ "x$RUN" != "xyes" ] ; then
+  log_warning_msg "$NAME disabled, please adjust the configuration to your needs "
+  log_warning_msg "and then set RUN to 'yes' in /etc/default/$NAME to enable it."
+  exit 0
+fi
+
+
+if getent passwd | grep -q "^$DAEMONUSER:"; then
+  DAEMONUID=`getent passwd | grep "^$DAEMONUSER:" | awk -F : '{print $3}'`
+  DAEMONGID=`getent passwd | grep "^$DAEMONUSER:" | awk -F : '{print $4}'`
+else
+  log_failure_msg "The user $DAEMONUSER, required to run $NAME does not exist."
+  exit 1
+fi
+
+
+set -e
+
+
+running() {
+  PID=`ps -fu polyglot-as | grep jboss-modules.jar | grep -v grep | awk {'print $2'}`
+  if [[ -f /proc/$PID/cmdline && -n $PID ]] ; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+start_server() {
+  echo "`date`: Starting $DESC: $POLYGLOT_AS_SERVER" >> $LOGFILE
+  log_progress_msg "(this will take $STARTTIME seconds) "
+  start-stop-daemon --start --quiet --chuid $DAEMONUSER  \
+    --exec $POLYGLOT_AS_START --pidfile $PIDFILE --make-pidfile -- -c $POLYGLOT_AS_SERVER >> $LOGFILE 2>&1 &
+  sleep $STARTTIME
+  if running ; then
+    log_success_msg "- successfully started"
+    log_success_msg "It might take a while until $NAME is completely booted"
+    echo "`date`: Successfully started." >> $LOGFILE
+  else
+    log_failure_msg "- starting failed"
+    echo "`date`: Starting failed." >> $LOGFILE
+  fi
+}
+
+stop_server() {
+  echo "`date`: Stopping $DESC: $POLYGLOT_AS_SERVER" >> $LOGFILE
+  log_progress_msg "(this will take $DIETIME seconds) "
+  $POLYGLOT_AS_STOP >> $LOGFILE 2>&1
+  sleep $DIETIME
+  if running ; then
+    log_failure_msg "- stopping failed. Try $0 force-stop "
+    echo "`date`: Stopping failed. Try $0 force-stop ." >> $LOGFILE
+  else
+    rm -f $PIDFILE
+    log_success_msg "- successfully stopped"
+    echo "`date`: Successfully stopped." >> $LOGFILE
+  fi
+}
+
+force_stop_server() {
+  echo "`date`: Stopping (force) $NAME with pkill" >> $LOGFILE
+  pkill -u polyglot-as >> $LOGFILE
+  sleep $DIETIME
+  if running ; then
+    echo "`date`: Stopping (force) $NAME with pkill -9" >> $LOGFILE
+    pkill -9 -u polyglot-as >> $LOGFILE
+  fi
+  if running ; then
+    echo "`date`: force-stop failed." >> $LOGFILE
+    log_failure_msg "force-stop failed"
+  else
+    rm -f $PIDFILE
+    echo "`date`: force-stop succeeded." >> $LOGFILE
+    log_success_msg "force-stop succeeded"
+  fi
+}
+
+
+case "$1" in
+  start)
+    log_begin_msg "Starting $DESC: $POLYGLOT_AS_SERVER "
+    if running ; then
+      echo "`date`: $NAME running, therefore not trying to start" >> $LOGFILE
+      log_success_msg "- apparently already running"
+    else
+      start_server
+    fi
+    ;;
+
+  stop)
+    if [ $POLYGLOT_AS_SERVER == "minimal" ] || [ $POLYGLOT_AS_SERVER == "web" ] ; then
+      $0 force-stop
+    else
+      log_begin_msg "Stopping $DESC: $POLYGLOT_AS_SERVER "
+      if running ; then
+        stop_server
+      else
+        echo "`date`: $NAME not running, therefore not trying to stop" >> $LOGFILE
+        log_success_msg "- apparently not running"
+      fi
+    fi
+    ;;
+
+  force-stop)
+    log_begin_msg "Force-stopping $DESC: $POLYGLOT_AS_SERVER "
+    if running ; then
+      force_stop_server
+    else
+      echo "`date`: $NAME not running, therefore not trying to stop" >> $LOGFILE
+      log_success_msg "- apparently not running"
+    fi
+    ;;
+
+  restart|force-reload)
+    if [ $POLYGLOT_AS_SERVER == "minimal" ] || [ $POLYGLOT_AS_SERVER == "web" ] ; then
+      log_begin_msg "Force-stopping $DESC: $POLYGLOT_AS_SERVER "
+      if running ; then
+        force_stop_server
+      else
+        echo "`date`: $NAME not running, therefore not trying to stop" >> $LOGFILE
+        log_warning_msg "- apparently not running"
+        exit 0
+      fi
+    else
+      log_begin_msg "Stopping $DESC: $POLYGLOT_AS_SERVER "
+      if running ; then
+        stop_server
+      else
+        echo "`date`: $NAME not running, therefore not trying to stop" >> $LOGFILE
+        log_warning_msg "- apparently not running"
+        exit 0
+      fi
+    fi
+    log_begin_msg "Starting $DESC: $POLYGLOT_AS_SERVER "
+    if running ; then
+      echo "`date`: $NAME running, therefore not trying to start" >> $LOGFILE
+      log_success_msg "- apparently already running"
+    else
+      start_server
+    fi
+    ;;
+
+  status)
+    log_begin_msg "Checking status of $DESC: $POLYGLOT_AS_SERVER "
+    echo "`date`: Checking status of $DESC: " >> $LOGFILE
+    if running ; then
+      log_success_msg "- apparently running"
+      echo "`date`: $NAME - apparently running" >> $LOGFILE
+    else
+      log_warning_msg "- apparently not running"
+      echo "`date`: $NAME - apparently not running" >> $LOGFILE
+    fi
+    ;;
+
+  reload)
+    log_warning_msg "Reloading $NAME daemon: not implemented, as the daemon \
+    cannot re-read the config file (use restart)."
+    ;;
+
+  *)
+    N=/etc/init.d/$NAME
+    echo "Usage: $N {start|stop|force-stop|restart|force-reload|status}" >&2
+    exit 1
+    ;;
+
+esac
+
+exit 0
+HEREDOC0
+
+chmod a+x /etc/init.d/polyglot-as
+}
+
+function debuntu_jvm_polyglot-as_setup-logrotate {
+cat <<'HEREDOC0' > /etc/logrotate.d/polyglot-as
+/var/log/polyglot-as/*.log  /opt/polyglot-as/jboss/standalone/log/*/*.log /home/polyglot-as/*/log/*.log {
+daily
+missingok
+size 1M
+rotate 21
+compress
+delaycompress
+notifempty
+copytruncate
+}
+HEREDOC0
+logrotate -d -v /etc/logrotate.d/polyglot-as
+}
+
+function debuntu_jvm_polyglot-as_setup-start-stop-scripts {
+case `debuntu_system_meta_os-name` in
+  Debian*)
+    debuntu_jvm_polyglot-as_setup-init
+    ;;
+  Ubuntu*)
+    debuntu_jvm_polyglot-as_setup-upstart
+    ;;
+esac
+}
+
+function debuntu_jvm_polyglot-as_setup-upstart {
+cat <<'HEREDOC0' > /etc/init/polyglot-as.conf
+description "This is an upstart job file for TorqueBox"
+
+pre-start script
+bash << "EOF"
+  mkdir -p /var/log/polyglot-as
+  chown -R polyglot-as /var/log/polyglot-as
+EOF
+end script
+
+start on filesystem and net-device-up IFACE!=eth0
+stop on stopped network-services
+respawn
+limit nofile 4096 4096
+
+script
+bash << "EOF"
+  su - polyglot-as
+  export JRUBY_OPTS="--1.9"
+  export JAVA_OPTS="-server -Xms64m -Xmx32G -XX:MaxPermSize=2G"
+  export JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true -Dorg.jboss.resolver.warning=true"
+  export JAVA_OPTS="$JAVA_OPTS -Dsun.rmi.dgc.client.gcInterval=3600000 -Dsun.rmi.dgc.server.gcInterval=3600000"
+  export JAVA_OPTS="$JAVA_OPTS -Djboss.modules.system.pkgs=$JBOSS_MODULES_SYSTEM_PKGS -Djava.awt.headless=true"
+  export JAVA_OPTS="$JAVA_OPTS -Djboss.server.default.config=standalone.xml"
+  export POLYGLOT_AS_HOME=/opt/polyglot-application-server/server
+  export JBOSS_HOME=${POLYGLOT_AS_HOME}/jboss
+  export JRUBY_HOME=${POLYGLOT_AS_HOME}/jruby
+  export PATH=${POLYGLOT_AS_HOME}/bin:${JBOSS_HOME}/bin:${JRUBY_HOME}/bin:${PATH}
+
+  ${JRUBY_HOME}/bin/standalone.sh >> /var/log/polyglot-as/polyglot-as.log 2>&1
+EOF
+end script
+HEREDOC0
+}
+
 function debuntu_meta_echo_test {
 echo "I am `whoami`"
 echo "ARG1 $1"
@@ -520,17 +867,25 @@ EOF
 
 }
 
-function debuntu_rails-server_setup-as-torquebox {
+function debuntu_rails-server_install_apache_httpd {
+apt-get install -y apache2
+a2enmod proxy_http
+a2enmod headers
+a3enmod expires
+}
+
+function debuntu_rails-server_setup-as-polyglot-as {
 debuntu_ruby_rbenv_install
 debuntu_ruby_rbenv_install_ruby_2.0.0
+debuntu_ruby_rbenv_install_jruby_1.7
 }
 
 function debuntu_rails-server_setup {
-debuntu_torquebox_install_3.0.1
+# debuntu_jvm_polyglot-as_install
 debuntu_database_postgresql_install_9.2
-debuntu_database_postgresql_add_superuser torquebox
-debuntu_ruby_rbenv_prepare_system
-debuntu_invoke_as_user torquebox debuntu_rails-server_setup-as-torquebox
+debuntu_database_postgresql_add_superuser polyglot-as
+debuntu_ruby_rbenv_prepare-system
+debuntu_invoke_as_user polyglot-as debuntu_rails-server_setup-as-polyglot-as
 }
 
 function debuntu_ruby_rbenv_install {
@@ -551,9 +906,9 @@ EOF
 return
 fi
 
-CURRENT='jruby-1.7.5'
+CURRENT='jruby-1.7.9'
 LINK='jruby-1.7'
-declare -a OLD_VERSIONS=("jruby-1.7.4")
+declare -a OLD_VERSIONS=("jruby-1.7.4" "jruby-1.7.5")
 
 OLD_VERSIONS=$OLD_VERSIONS CURRENT=$CURRENT LINK=$LINK KEEP=$KEEP debuntu_ruby_rbenv_install_latest
 }
@@ -697,9 +1052,20 @@ debuntu_ruby_rbenv_system_setup_loader
 }
 
 function debuntu_ruby_rbenv_system_install_dependencies {
+case `debuntu_system_meta_os-name` in
+  Debian*)
+    if [[ ! -f /etc/apt/sources.list.d/backports.list ]]; then
+      echo 'deb  http://ftp.ch.debian.org/debian/ wheezy-backports main' > /etc/apt/sources.list.d/backports.list
+      apt-get update
+    fi
+    ;;
+esac
+
+
 apt-get install --assume-yes git zlib1g-dev \
   libssl-dev libxslt1-dev libxml2-dev build-essential \
-  libreadline-dev libreadline6 libreadline6-dev g++
+  libreadline-dev libreadline6 libreadline6-dev g++ \
+  nodejs
 }
 
 function debuntu_ruby_rbenv_system_setup_loader {
@@ -942,373 +1308,6 @@ debuntu_system_misc_set_us-utf8_locale
 debuntu_system_install_basics
 debuntu_system_misc_vim_setup
 debuntu_system_misc_etckeeper_setup
-}
-
-function debuntu_torquebox_install_3.0.1 {
-TB_URL="http://torquebox.org/release/org/torquebox/torquebox-dist/3.0.1/torquebox-dist-3.0.1-bin.zip"
-TB_VERSION="3.0.1"
-TB_ROOT="/opt/torquebox-3.0.1"
-
-TMP_FILE="/tmp/torquebox-${TB_VERSION}.zip"
-TB_LINK="/opt/torquebox"
-
-service torquebox stop
-MATCHER='java.*jar.*torquebox'
-pgrep -f "$MATCHER"
-if [ $? -ne 0 ]; then
-  sleep 10
-  pkill -SIGTERM -f "$MATCHER"
-fi
-pgrep -f "$MATCHER"
-if [ $? -ne 0 ]; then
-  sleep 10
-  pkill -SIGKILL -f "$MATCHER"
-fi
-
-### installing prerequisites
-debuntu_jvm_open_jdk_install
-
-### do it 
-adduser --disabled-password -gecos "" torquebox
-if [ ! -f ${TMP_FILE} ]; then
-  curl -L "$TB_URL" > "$TMP_FILE"
-fi
-rm -rf ${TB_ROOT}
-unzip "$TMP_FILE" -d /opt
-chown -R torquebox "${TB_ROOT}"
-rm -f ${TB_LINK}
-ln -s ${TB_ROOT} ${TB_LINK}
-
-LOGDIR="/var/log/torquebox/"
-mkdir -p $LOGDIR
-chown -R torquebox $LOGDIR
-
-debuntu_torquebox_setup_env_loader
-debuntu_torquebox_setup_logrotate
-debuntu_torquebox_setup_start_stop_scripts
-
-service torquebox start
-}
-
-function debuntu_torquebox_setup_env_loader {
-cat <<'HEREDOC0' > /etc/profile.d/torquebox.sh
-function load_torquebox_env {
-export JRUBY_OPTS="--1.9"
-export JAVA_OPTS="-server -Xms64m -Xmx2G -XX:MaxPermSize=512m"
-export JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true -Dorg.jboss.resolver.warning=true"
-export JAVA_OPTS="$JAVA_OPTS -Dsun.rmi.dgc.client.gcInterval=3600000 -Dsun.rmi.dgc.server.gcInterval=3600000"
-export JAVA_OPTS="$JAVA_OPTS -Djboss.modules.system.pkgs=$JBOSS_MODULES_SYSTEM_PKGS -Djava.awt.headless=true"
-export JAVA_OPTS="$JAVA_OPTS -Djboss.server.default.config=standalone.xml"
-export TORQUEBOX_HOME=/opt/torquebox
-export JBOSS_HOME=${TORQUEBOX_HOME}/jboss
-export JRUBY_HOME=${TORQUEBOX_HOME}/jruby
-export PATH=${TORQUEBOX_HOME}/bin:${JBOSS_HOME}/bin:${JRUBY_HOME}/bin:${PATH}
-}
-HEREDOC0
-
-
-}
-
-function debuntu_torquebox_setup_init {
-cat <<'HEREDOC0' > /etc/init.d/torquebox
-#!/bin/bash -e
-#
-# Example init.d script with LSB support.
-#
-# Please read this init.d carefully and modify the sections to
-# adjust it to the program you want to run.
-#
-# Copyright 2012 Dominique Broeglin <dominique.broeglin@gmail.com>
-# Copyright 2007 Javier Fernandez-Sanguino <jfs@debian.org>
-# Copyright 2009 Philipp Hübner <philipp.huebner@credativ.de>
-#
-# This is free software; you may redistribute it and/or modify
-# it under the terms of the GNU General Public License as
-# published by the Free Software Foundation; either version 2,
-# or (at your option) any later version.
-#
-# This is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License with
-# the Debian operating system, in /usr/share/common-licenses/GPL;  if
-# not, write to the Free Software Foundation, Inc., 59 Temple Place,
-# Suite 330, Boston, MA 02111-1307 USA
-#
-### BEGIN INIT INFO
-# Provides:          torquebox
-# Required-Start:    $network $local_fs
-# Required-Stop:
-# Should-Start:      $named
-# Should-Stop:
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
-# Short-Description: Torquebox Application Server
-# Description:       A JRuby application server based on JBoss AS 7 
-### END INIT INFO
-
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-
-. /lib/lsb/init-functions
-
-source /etc/profile.d/torquebox.sh
-load_torquebox_env
-
-TORQUEBOX_SERVER=standalone.xml
-RUN=yes
-
-NAME=torquebox
-DESC="Torquebox Application Server"
-LOGDIR=/var/log/$NAME
-LOGFILE=$LOGDIR/$NAME.log
-PIDFILE=/var/run/$NAME.pid
-DIETIME=15
-STARTTIME=10
-DAEMONUSER=torquebox
-
-#TORQUEBOX_HOME=/usr/share/$NAME
-# . /etc/default/$NAME || exit 1
-
-TORQUEBOX_START="$TORQUEBOX_HOME/jboss/bin/standalone.sh"
-TORQUEBOX_STOP="$TORQUEBOX_HOME/jboss/bin/jboss-cli.sh --connect command=:shutdown"
-
-
-if [ "x$RUN" != "xyes" ] ; then
-  log_warning_msg "$NAME disabled, please adjust the configuration to your needs "
-  log_warning_msg "and then set RUN to 'yes' in /etc/default/$NAME to enable it."
-  exit 0
-fi
-
-
-if getent passwd | grep -q "^$DAEMONUSER:"; then
-  DAEMONUID=`getent passwd | grep "^$DAEMONUSER:" | awk -F : '{print $3}'`
-  DAEMONGID=`getent passwd | grep "^$DAEMONUSER:" | awk -F : '{print $4}'`
-else
-  log_failure_msg "The user $DAEMONUSER, required to run $NAME does not exist."
-  exit 1
-fi
-
-
-set -e
-
-
-running() {
-  PID=`ps -fu torquebox | grep jboss-modules.jar | grep -v grep | awk {'print $2'}`
-  if [[ -f /proc/$PID/cmdline && -n $PID ]] ; then
-    return 0
-  else
-    return 1
-  fi
-}
-
-start_server() {
-  echo "`date`: Starting $DESC: $TORQUEBOX_SERVER" >> $LOGFILE
-  log_progress_msg "(this will take $STARTTIME seconds) "
-  start-stop-daemon --start --quiet --chuid $DAEMONUSER  \
-    --exec $TORQUEBOX_START --pidfile $PIDFILE --make-pidfile -- -c $TORQUEBOX_SERVER >> $LOGFILE 2>&1 &
-  sleep $STARTTIME
-  if running ; then
-    log_success_msg "- successfully started"
-    log_success_msg "It might take a while until $NAME is completely booted"
-    echo "`date`: Successfully started." >> $LOGFILE
-  else
-    log_failure_msg "- starting failed"
-    echo "`date`: Starting failed." >> $LOGFILE
-  fi
-}
-
-stop_server() {
-  echo "`date`: Stopping $DESC: $TORQUEBOX_SERVER" >> $LOGFILE
-  log_progress_msg "(this will take $DIETIME seconds) "
-  $TORQUEBOX_STOP >> $LOGFILE 2>&1
-  sleep $DIETIME
-  if running ; then
-    log_failure_msg "- stopping failed. Try $0 force-stop "
-    echo "`date`: Stopping failed. Try $0 force-stop ." >> $LOGFILE
-  else
-    rm -f $PIDFILE
-    log_success_msg "- successfully stopped"
-    echo "`date`: Successfully stopped." >> $LOGFILE
-  fi
-}
-
-force_stop_server() {
-  echo "`date`: Stopping (force) $NAME with pkill" >> $LOGFILE
-  pkill -u torquebox >> $LOGFILE
-  sleep $DIETIME
-  if running ; then
-    echo "`date`: Stopping (force) $NAME with pkill -9" >> $LOGFILE
-    pkill -9 -u torquebox >> $LOGFILE
-  fi
-  if running ; then
-    echo "`date`: force-stop failed." >> $LOGFILE
-    log_failure_msg "force-stop failed"
-  else
-    rm -f $PIDFILE
-    echo "`date`: force-stop succeeded." >> $LOGFILE
-    log_success_msg "force-stop succeeded"
-  fi
-}
-
-
-case "$1" in
-  start)
-    log_begin_msg "Starting $DESC: $TORQUEBOX_SERVER "
-    if running ; then
-      echo "`date`: $NAME running, therefore not trying to start" >> $LOGFILE
-      log_success_msg "- apparently already running"
-    else
-      start_server
-    fi
-    ;;
-
-  stop)
-    if [ $TORQUEBOX_SERVER == "minimal" ] || [ $TORQUEBOX_SERVER == "web" ] ; then
-      $0 force-stop
-    else
-      log_begin_msg "Stopping $DESC: $TORQUEBOX_SERVER "
-      if running ; then
-        stop_server
-      else
-        echo "`date`: $NAME not running, therefore not trying to stop" >> $LOGFILE
-        log_success_msg "- apparently not running"
-      fi
-    fi
-    ;;
-
-  force-stop)
-    log_begin_msg "Force-stopping $DESC: $TORQUEBOX_SERVER "
-    if running ; then
-      force_stop_server
-    else
-      echo "`date`: $NAME not running, therefore not trying to stop" >> $LOGFILE
-      log_success_msg "- apparently not running"
-    fi
-    ;;
-
-  restart|force-reload)
-    if [ $TORQUEBOX_SERVER == "minimal" ] || [ $TORQUEBOX_SERVER == "web" ] ; then
-      log_begin_msg "Force-stopping $DESC: $TORQUEBOX_SERVER "
-      if running ; then
-        force_stop_server
-      else
-        echo "`date`: $NAME not running, therefore not trying to stop" >> $LOGFILE
-        log_warning_msg "- apparently not running"
-        exit 0
-      fi
-    else
-      log_begin_msg "Stopping $DESC: $TORQUEBOX_SERVER "
-      if running ; then
-        stop_server
-      else
-        echo "`date`: $NAME not running, therefore not trying to stop" >> $LOGFILE
-        log_warning_msg "- apparently not running"
-        exit 0
-      fi
-    fi
-    log_begin_msg "Starting $DESC: $TORQUEBOX_SERVER "
-    if running ; then
-      echo "`date`: $NAME running, therefore not trying to start" >> $LOGFILE
-      log_success_msg "- apparently already running"
-    else
-      start_server
-    fi
-    ;;
-
-  status)
-    log_begin_msg "Checking status of $DESC: $TORQUEBOX_SERVER "
-    echo "`date`: Checking status of $DESC: " >> $LOGFILE
-    if running ; then
-      log_success_msg "- apparently running"
-      echo "`date`: $NAME - apparently running" >> $LOGFILE
-    else
-      log_warning_msg "- apparently not running"
-      echo "`date`: $NAME - apparently not running" >> $LOGFILE
-    fi
-    ;;
-
-  reload)
-    log_warning_msg "Reloading $NAME daemon: not implemented, as the daemon \
-    cannot re-read the config file (use restart)."
-    ;;
-
-  *)
-    N=/etc/init.d/$NAME
-    echo "Usage: $N {start|stop|force-stop|restart|force-reload|status}" >&2
-    exit 1
-    ;;
-
-esac
-
-exit 0
-HEREDOC0
-
-chmod a+x /etc/init.d/torquebox
-}
-
-function debuntu_torquebox_setup_logrotate {
-cat <<'HEREDOC0' > /etc/logrotate.d/torquebox
-/var/log/torquebox/*.log  /opt/torquebox/jboss/standalone/log/*/*.log /home/torquebox/*/log/*.log {
-daily
-missingok
-size 1M
-rotate 21
-compress
-delaycompress
-notifempty
-copytruncate
-}
-HEREDOC0
-logrotate -d -v /etc/logrotate.d/torquebox
-}
-
-function debuntu_torquebox_setup_start_stop_scripts {
-case `debuntu_system_meta_os-name` in
-  Debian*)
-    debuntu_torquebox_setup_init
-    ;;
-  Ubuntu*)
-    debuntu_torquebox_setup_upstart
-    ;;
-esac
-}
-
-function debuntu_torquebox_setup_upstart {
-cat <<'HEREDOC0' > /etc/init/torquebox.conf
-description "This is an upstart job file for TorqueBox"
-
-pre-start script
-bash << "EOF"
-  mkdir -p /var/log/torquebox
-  chown -R torquebox /var/log/torquebox
-EOF
-end script
-
-start on filesystem and net-device-up IFACE!=eth0
-stop on stopped network-services
-respawn
-limit nofile 4096 4096
-
-script
-bash << "EOF"
-  su - torquebox
-  load_torquebox_env
-  /opt/torquebox/jboss/bin/standalone.sh >> /var/log/torquebox/torquebox.log 2>&1
-EOF
-end script
-HEREDOC0
-}
-
-function debuntu_torquebox_uninstall_all {
-# this will uninstall all torquebox instances
-# but it will leave the torquebox user account
-stop torquebox
-killall torquebox
-killall -9 torquebox
-rm -rf /opt/torquebox*
-rm -f /etc/init/torquebox.conf
 }
 
 function debuntu_zhdk_domina-slave_complete-setup-as-user {
