@@ -2,7 +2,7 @@ function debuntu_ci_chromedriver_install {
 TMDIR=`mktemp -d`
 cd $TMDIR
 MACHINE_BITS=`uname -m | cut -d '_' -f 2`
-curl -s -L "http://chromedriver.storage.googleapis.com/2.6/chromedriver_linux${MACHINE_BITS}.zip" > chromedriver.zip
+curl -s -L "http://chromedriver.storage.googleapis.com/2.8/chromedriver_linux${MACHINE_BITS}.zip" > chromedriver.zip
 unzip chromedriver.zip
 mv chromedriver ~/bin
 cd
@@ -1357,7 +1357,7 @@ debuntu_invoke_as_user domina debuntu_zhdk_domina-slave_complete-setup-as-user
 }
 
 function debuntu_zhdk_domina-slave_domina-ci-executor_as-domina-setup {
-debuntu_ci_domina-ci-executor_install "18b63f15073cd9f99fdc7290db647c699da6db07"
+debuntu_ci_domina-ci-executor_install "6b03ebd632ea31f8f81b157a69834ee5bda9357c"
 
 cat <<'EOF' > ~/domina_ci_executor/domina_conf.clj
 {
