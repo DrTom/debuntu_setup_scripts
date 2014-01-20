@@ -1,4 +1,4 @@
-debuntu_ci_domina-ci-executor_install "c5b6a91a91c36ec71132f57a1d7b4de7becaf3a2"
+debuntu_ci_domina-ci-executor_install "6b03ebd632ea31f8f81b157a69834ee5bda9357c"
 
 cat <<'EOF' > ~/domina_ci_executor/domina_conf.clj
 {
