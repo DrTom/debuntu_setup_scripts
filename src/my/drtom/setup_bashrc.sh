@@ -44,11 +44,11 @@ shopt -s checkwinsize
 
 
 function source_debuntu_master {
-  source <(curl https://raw.github.com/DrTom/debuntu_setup_scripts/master/bin/debuntu_fun.sh)
+  source <(curl https://raw.githubusercontent.com/DrTom/debuntu_setup_scripts/master/bin/debuntu_fun.sh)
 }
 
 function source_debuntu_wip {
-    source <(curl https://raw.github.com/DrTom/debuntu_setup_scripts/wip/bin/debuntu_fun.sh)
+    source <(curl https://raw.githubusercontent.com/DrTom/debuntu_setup_scripts/wip/bin/debuntu_fun.sh)
 }
 
 EOF

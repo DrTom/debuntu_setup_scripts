@@ -13,7 +13,7 @@ riak soft nofile 65536
 riak hard nofile 65536
 EOF
 
-curl "https://raw.github.com/DrTom/debuntu_setup_scripts/master/data/riak-cs-config.patch" | git apply --directory /etc
+curl "https://raw.githubusercontent.com/DrTom/debuntu_setup_scripts/master/data/riak-cs-config.patch" | git apply --directory /etc
 
 etckeeper commit "Configured riak-cs"
 

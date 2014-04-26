@@ -1,1 +1,1 @@
-curl https://raw.github.com/fesplugas/rbenv-installer/master/bin/rbenv-installer | bash
+curl https://raw.githubusercontent.com/fesplugas/rbenv-installer/master/bin/rbenv-installer | bash

@@ -250,7 +250,7 @@ riak soft nofile 65536
 riak hard nofile 65536
 EOF
 
-curl "https://raw.github.com/DrTom/debuntu_setup_scripts/master/data/riak-cs-config.patch" | git apply --directory /etc
+curl "https://raw.githubusercontent.com/DrTom/debuntu_setup_scripts/master/data/riak-cs-config.patch" | git apply --directory /etc
 
 etckeeper commit "Configured riak-cs"
 
@@ -333,7 +333,7 @@ rm -f $TEMPFILE
 
 function debuntu_jvm_leiningen_install {
 mkdir -p ~/bin
-curl -s "https://raw.github.com/technomancy/leiningen/stable/bin/lein" > ~/bin/lein
+curl -s "https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein" > ~/bin/lein
 chmod a+x ~/bin/lein
 ~/bin/lein
 }
@@ -742,7 +742,7 @@ echo "$FUNCTIONS" > "$1"
 }
 
 function debuntu_my_drtom_add_ssh_key {
-debuntu_ssh_download_and_add_to_authorized_keys "https://raw.github.com/DrTom/debuntu_setup_scripts/master/data/keys/drtom"
+debuntu_ssh_download_and_add_to_authorized_keys "https://raw.githubusercontent.com/DrTom/debuntu_setup_scripts/master/data/keys/drtom"
 }
 
 function debuntu_my_drtom_setup {
@@ -798,11 +798,11 @@ shopt -s checkwinsize
 
 
 function source_debuntu_master {
-  source <(curl https://raw.github.com/DrTom/debuntu_setup_scripts/master/bin/debuntu_fun.sh)
+  source <(curl https://raw.githubusercontent.com/DrTom/debuntu_setup_scripts/master/bin/debuntu_fun.sh)
 }
 
 function source_debuntu_wip {
-    source <(curl https://raw.github.com/DrTom/debuntu_setup_scripts/wip/bin/debuntu_fun.sh)
+    source <(curl https://raw.githubusercontent.com/DrTom/debuntu_setup_scripts/wip/bin/debuntu_fun.sh)
 }
 
 EOF
@@ -889,7 +889,7 @@ debuntu_invoke_as_user polyglot-as debuntu_rails-server_setup-as-polyglot-as
 }
 
 function debuntu_ruby_rbenv_install {
-curl https://raw.github.com/fesplugas/rbenv-installer/master/bin/rbenv-installer | bash
+curl https://raw.githubusercontent.com/fesplugas/rbenv-installer/master/bin/rbenv-installer | bash
 }
 
 function debuntu_ruby_rbenv_install_jruby_1.7 {
@@ -1425,10 +1425,10 @@ RBENV_RUBY_VERSION="ruby-1.9.3" GEMS_VERSION="1.9.1" GHERKIN_VERSION="2.12.0" de
 }
 
 function debuntu_zhdk_ssh_add-keys {
-debuntu_ssh_download_and_add_to_authorized_keys "https://raw.github.com/DrTom/debuntu_setup_scripts/master/data/keys/drtom"
-debuntu_ssh_download_and_add_to_authorized_keys "https://raw.github.com/DrTom/debuntu_setup_scripts/master/data/keys/nimaai"
-debuntu_ssh_download_and_add_to_authorized_keys "https://raw.github.com/DrTom/debuntu_setup_scripts/master/data/keys/psy-q"
-debuntu_ssh_download_and_add_to_authorized_keys "https://raw.github.com/DrTom/debuntu_setup_scripts/master/data/keys/sellittf"
-debuntu_ssh_download_and_add_to_authorized_keys "https://raw.github.com/DrTom/debuntu_setup_scripts/master/data/keys/spape"
+debuntu_ssh_download_and_add_to_authorized_keys "https://raw.githubusercontent.com/DrTom/debuntu_setup_scripts/master/data/keys/drtom"
+debuntu_ssh_download_and_add_to_authorized_keys "https://raw.githubusercontent.com/DrTom/debuntu_setup_scripts/master/data/keys/nimaai"
+debuntu_ssh_download_and_add_to_authorized_keys "https://raw.githubusercontent.com/DrTom/debuntu_setup_scripts/master/data/keys/psy-q"
+debuntu_ssh_download_and_add_to_authorized_keys "https://raw.githubusercontent.com/DrTom/debuntu_setup_scripts/master/data/keys/sellittf"
+debuntu_ssh_download_and_add_to_authorized_keys "https://raw.githubusercontent.com/DrTom/debuntu_setup_scripts/master/data/keys/spape"
 }
 

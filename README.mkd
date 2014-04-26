@@ -4,6 +4,10 @@ Debuntu Setup Scripts
 As collection of shell-functions to install and setup things in your
 Debian/Ubuntu box.
 
+### Deprecation warning
+
+Many of the scripts are deprecated as I am moving to `ansible`. 
+
 Properties
 ----------
 
@@ -31,11 +35,8 @@ Usage examples
 
 Source the (stable) functions:
 
-    source <(curl https://raw.github.com/DrTom/debuntu_setup_scripts/master/bin/debuntu_fun.sh)
-
-Alternatively source from the wip (work in progress) branch: 
-
-    source <(curl https://raw.github.com/DrTom/debuntu_setup_scripts/wip/bin/debuntu_fun.sh)
+    source <(curl https://raw.githubusercontent.com/DrTom/debuntu_setup_scripts/master/bin/debuntu_fun.sh) 
+    
 
 See which scripts are available:
 
